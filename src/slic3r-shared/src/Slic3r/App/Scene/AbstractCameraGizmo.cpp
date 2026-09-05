@@ -327,8 +327,11 @@ GizmoActivationState AbstractCameraGizmo::on_mouse(GizmoEventContext& ctx, bool 
             {
                 bool shift_down = (ctx.mouse_event().key_modifiers() & Platform::KeyModifiers(Platform::KeyModifier::Shift)) != 0;
                 update_pan(last_mouse_world_pos - current_mouse_world_pos, shift_down);
-            } else
-                return GizmoActivationState::Inactive;
+            }
+            // A cursor ray that misses the reference plane means this one move
+            // cannot become a pan. Skip the increment rather than returning
+            // Inactive, which would drop this gizmo out of the cycle and end
+            // the drag for good -- the same failure the Wheel branch above had.
         }
 
         m_last_x = event.x();
@@ -339,11 +342,38 @@ GizmoActivationState AbstractCameraGizmo::on_mouse(GizmoEventContext& ctx, bool 
         m_state = State::Inactive;
         return m_was_activated ? GizmoActivationState::Done : GizmoActivationState::Inactive;
     } else if (type == Platform::MouseEvent::Type::Wheel) {
+        // A drag already in progress owns the gesture.
+        //
+        // On a trackpad the same two fingers are both the button and the scroll
+        // gesture, so macOS interleaves scroll events throughout a two-finger
+        // drag. Returning Done for those was fatal: Done makes GizmoManager
+        // clear in_cycle_gizmos, which ends the interaction cycle, so the next
+        // event started a fresh one and on_cycle_prepare() reset m_state --
+        // killing the pan one event after it began and leaving the eventual
+        // ButtonUp to ContextMenuGizmo, which opened the context menu instead.
+        //
+        // Staying in the cycle keeps the drag alive. Which state to report
+        // depends on whether the drag has actually started: Active claims the
+        // cycle exclusively and evicts every other gizmo, which is right once
+        // the camera is really dragging, but wrong before the movement
+        // threshold is crossed -- a two-finger *click* also emits scroll, and
+        // claiming there would throw away ContextMenuGizmo and swallow the
+        // menu the click was asking for. Probing keeps this gizmo in the cycle
+        // without taking it over, so both outcomes stay reachable.
+        //
+        // The zoom is deliberately skipped as well: a trackpad pan would
+        // otherwise zoom at the same time, since the fingers producing the drag
+        // are producing the scroll too.
+        if (m_state != State::Inactive) {
+            return m_was_activated ? GizmoActivationState::Active
+                                   : GizmoActivationState::Probing;
+        }
+
         float wheel_delta_y = event.wheel_delta_y();
         if (AppServices::instance().app_config().get<bool>("reverse_mouse_wheel_zoom"))
             wheel_delta_y = -wheel_delta_y;
         zoom_at(wheel_delta_y, event.x(), event.y(), ctx.screen_info());
-        return (m_state == State::Inactive) ? GizmoActivationState::Inactive : GizmoActivationState::Done;
+        return GizmoActivationState::Inactive;
     }
     if (m_state == State::Inactive)
         return GizmoActivationState::Inactive;
