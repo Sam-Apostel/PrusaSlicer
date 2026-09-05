@@ -37,10 +37,23 @@ ContextMenuGizmo::on_mouse(Scene::GizmoEventContext& ctx, bool only_active)
     const Platform::MouseEvent::Type type{evt.type()};
 
     if (evt.button() != Platform::MouseButton::Right) {
-        return Scene::GizmoActivationState::Inactive;
+        // Returning Inactive makes GizmoManager erase this gizmo, and the erase
+        // lasts for the rest of the interaction -- so the ButtonUp that should
+        // open the menu would never arrive. Motion carries no button, and a
+        // trackpad interleaves motion and scroll into even a stationary
+        // two-finger click, so that erase is the common case rather than a rare
+        // one. Stay Probing until the press this gizmo is following ends.
+        //
+        // Probing does not keep the menu alive through a real drag: once the
+        // camera gizmo passes its movement threshold it reports Active, which
+        // claims the cycle and evicts this gizmo -- which is what should happen,
+        // since a drag is not a click.
+        return m_right_down ? Scene::GizmoActivationState::Probing
+                            : Scene::GizmoActivationState::Inactive;
     }
 
     if (type == Platform::MouseEvent::Type::ButtonDown) {
+        m_right_down = true;
         return Scene::GizmoActivationState::Probing;
     }
     auto& timer_queue = Biz::Platform::PlatformServices::instance().timer_queue();
@@ -54,6 +67,7 @@ ContextMenuGizmo::on_mouse(Scene::GizmoEventContext& ctx, bool only_active)
     }
 
     if (type == Platform::MouseEvent::Type::ButtonUp) {
+        m_right_down = false;
         if (m_double_click_detected) {
             m_double_click_detected = false;
             return Scene::GizmoActivationState::Inactive;
@@ -116,6 +130,20 @@ ContextMenuGizmo::on_mouse(Scene::GizmoEventContext& ctx, bool only_active)
     }
 
     return Scene::GizmoActivationState::Inactive;
+}
+
+void ContextMenuGizmo::on_cycle_prepare()
+{
+    // A new cycle means a new interaction, so no press can still be in flight.
+    //
+    // Without this the flag could stick on: a drag that passes the camera's
+    // movement threshold makes the camera claim the cycle, which evicts this
+    // gizmo before its ButtonUp arrives. A stuck flag is not merely cosmetic --
+    // it makes on_mouse() answer Probing forever, so in_cycle_gizmos never
+    // empties, GizmoManager never starts a new cycle, and every gizmo erased in
+    // the meantime stays erased. The symptom is that all clicking dies until
+    // some later right ButtonUp happens to reach here and clear it.
+    m_right_down = false;
 }
 
 void ContextMenuGizmo::invoke_show_context_menu(ContextMenuType type, Domain::Vec2f mouse_position)
