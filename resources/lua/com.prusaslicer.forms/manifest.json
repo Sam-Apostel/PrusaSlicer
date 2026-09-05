@@ -1,0 +1,12 @@
+{
+	"id": "com.prusaslicer.forms",
+	"name": "Settings form controls",
+	"license": "AGPL-3.0-only",
+	"min_slicer_version": "3.0.0",
+	"version": "1.0.0",
+	"author": "prusaslicer",
+	"description": "Renders some settings as the decision they represent rather than one row each",
+	"required_apis": {
+		"form.plugin": "1.0.0"
+	}
+}

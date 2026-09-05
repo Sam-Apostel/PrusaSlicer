@@ -1,11 +1,15 @@
 #include "Slic3r/App/Lua/PluginSystem.hpp"
 #include "Slic3r/App/Lua/PluginDialog.hpp"
 #include "Slic3r/App/Lua/ProjectApi.hpp"
+#include "Slic3r/App/Config/ConfigFormElementRegistry.hpp"
+#include "Slic3r/App/Config/FormSpecInstaller.hpp"
 #include "Slic3r/Biz/Lua/LuaException.hpp"
 
 #include <boost/nowide/config.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <ranges>
 #include <utility>
+#include <vector>
 #include <imgui/imgui.h>
 
 namespace Slic3r::App::Lua {
@@ -210,12 +214,36 @@ void PluginSystem::scan(const std::string& path)
     m_registry.scan(path);
 }
 
+void PluginSystem::install_form_elements()
+{
+    // Gathered from every form plugin and installed in one go, replacing the
+    // previous set. A rescan is a fresh start -- a plugin may have been
+    // removed, or edited on disk -- and rebuilding from what is there now is
+    // simpler to be sure of than unpicking what each plugin contributed.
+    std::vector<FormElementSpec> specs;
+    for (const auto& plugin : m_registry.plugins() | std::views::values) {
+        if (plugin.meta().type != PluginType::FormPlugin)
+            continue;
+        specs.insert(
+            specs.end(), plugin.meta().form_elements.begin(), plugin.meta().form_elements.end()
+        );
+    }
+
+    const FormSpecInstallReport report =
+        install_plugin_form_specs(specs, ConfigFormElementRegistry::instance());
+    for (const std::string& rejected : report.rejected)
+        SPDLOG_ERROR("Form element not installed -- {}", rejected);
+    if (report.installed > 0)
+        SPDLOG_INFO("Plugins provide {} settings form control(s)", report.installed);
+}
+
 void PluginSystem::rescan()
 {
     clear();
     for (const auto& path : m_plugin_paths) {
         scan(path);
     }
+    install_form_elements();
     invoke_listeners<IPluginRescanListener>([this](auto* l) { l->on_plugins_scanned(m_registry); });
 }
 

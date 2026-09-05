@@ -22,7 +22,9 @@ constexpr auto META_FILENAME = "manifest.json";
 
 enum class PluginApiType
 {
-    Project
+    Project,
+    /// Declaring how settings are rendered. See PluginType::FormPlugin.
+    Form
 };
 
 std::string to_string(PluginApiType pat);
