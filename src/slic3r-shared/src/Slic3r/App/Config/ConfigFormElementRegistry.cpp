@@ -1,9 +1,5 @@
 #include "Slic3r/App/Config/ConfigFormElementRegistry.hpp"
 
-#include "Slic3r/App/Config/EnumCardsElement.hpp"
-#include "Slic3r/App/Config/PercentSliderElement.hpp"
-#include "Slic3r/App/Config/TravelAvoidanceElement.hpp"
-
 #include <algorithm>
 #include <utility>
 
@@ -12,87 +8,16 @@ namespace Slic3r::App {
 ConfigFormElementRegistry& ConfigFormElementRegistry::instance()
 {
     static ConfigFormElementRegistry registry;
-    // Registered on first access rather than from a start-up hook, so there is
-    // no ordering to get wrong and the CLI never pays for GUI-only state. The
-    // built-ins are listed here so the set is readable in one place instead of
-    // being left to static initialisers and link order.
-    static const bool builtins_registered = []
-    {
-        register_travel_avoidance_element(registry);
-
-        // Infill density and pattern. Density is a bounded quantity tuned by
-        // feel, and pattern is a choice made by comparing the alternatives —
-        // neither is served by the text field and dropdown they get by default.
-        using Category    = Domain::ConfigItemDef::Category;
-        using OptionGroup = Domain::ConfigItemDef::OptionGroup;
-        registry.register_element(Entry{
-            .category     = Category::Print_Infill,
-            .option_group = OptionGroup::Print_Infill_DensityPattern,
-            .claimed_keys = {"fill_density"},
-            .factory =
-                [](const ConfigFormContext& context)
-            // 1% steps: the slider snaps, and coarser steps would make a stored
-            // value that is not a multiple of the step unreachable by dragging.
-            { return std::make_unique<PercentSliderElement>(context, "fill_density", 1.0); }
-        });
-        registry.register_element(Entry{
-            .category     = Category::Print_Infill,
-            .option_group = OptionGroup::Print_Infill_DensityPattern,
-            .claimed_keys = {"fill_pattern"},
-            .factory =
-                [](const ConfigFormContext& context)
-            { return std::make_unique<EnumCardsElement>(context, "fill_pattern", 3); }
-        });
-
-        // Enums whose options are compared rather than looked up. Each is a
-        // short list of self-describing choices, so laying them out shows the
-        // decision at a glance where a dropdown shows one option and hides the
-        // rest.
-        //
-        // Deliberately not every enum. Without illustrations, cards only beat a
-        // dropdown when the options are few and their names carry their meaning;
-        // a long list of bare labels is just a dropdown that takes more room. So
-        // the eight-option top/bottom fill patterns stay as they are until there
-        // is artwork to compare, and degree-like enums (draft shield) keep their
-        // dropdown too.
-        const auto cards = [](
-                               Category category,
-                               OptionGroup group,
-                               std::string key,
-                               size_t columns = 1
-                           )
-        {
-            registry.register_element(Entry{
-                .category     = category,
-                .option_group = group,
-                .claimed_keys = {key},
-                .factory =
-                    [key, columns](const ConfigFormContext& context)
-                { return std::make_unique<EnumCardsElement>(context, key, columns); }
-            });
-        };
-
-        cards(Category::Print_WallsPerimeters, OptionGroup::Print_WallsPerimeters_Seams,
-              "seam_position");
-        cards(Category::Print_WallsPerimeters, OptionGroup::Print_WallsPerimeters_FuzzySkin,
-              "fuzzy_skin");
-        cards(Category::Print_BedAdhesion, OptionGroup::Print_BedAdhesion_Brim, "brim_type");
-        cards(Category::Print_Supports, OptionGroup::Print_Supports_Generation,
-              "support_material_style");
-        cards(Category::Print_Supports, OptionGroup::Print_Supports_PatternDensity,
-              "support_material_pattern");
-        cards(Category::Print_LayersSurfaces, OptionGroup::Print_LayerSurfaces_Ironing,
-              "ironing_type");
-
-        return true;
-    }();
-    (void) builtins_registered;
     return registry;
 }
 
-void ConfigFormElementRegistry::register_element(Entry entry)
+void ConfigFormElementRegistry::set_form_controls(
+    std::vector<Entry> entries,
+    std::vector<SectionToggle> toggles
+)
 {
-    m_entries.push_back(std::move(entry));
+    m_entries         = std::move(entries);
+    m_section_toggles = std::move(toggles);
 }
 
 std::vector<const ConfigFormElementRegistry::Entry*> ConfigFormElementRegistry::elements_for(
@@ -108,12 +33,31 @@ std::vector<const ConfigFormElementRegistry::Entry*> ConfigFormElementRegistry::
     return found;
 }
 
+const ConfigFormElementRegistry::SectionToggle* ConfigFormElementRegistry::section_toggle_for(
+    const Domain::ConfigItemDef::Category category,
+    const Domain::ConfigItemDef::OptionGroup option_group
+) const
+{
+    // A group has one switch. Two declarations for the same group cannot both
+    // be honoured, and the installer rejects the second rather than leaving
+    // which one wins to the order this vector happens to be in.
+    for (const SectionToggle& toggle : m_section_toggles) {
+        if (toggle.category == category && toggle.option_group == option_group)
+            return &toggle;
+    }
+    return nullptr;
+}
+
 bool ConfigFormElementRegistry::is_claimed(
     const Domain::ConfigItemDef::Category category,
     const Domain::ConfigItemDef::OptionGroup option_group,
     const std::string& key
 ) const
 {
+    const SectionToggle* toggle = section_toggle_for(category, option_group);
+    if (toggle != nullptr && toggle->key == key)
+        return true;
+
     return std::any_of(
         m_entries.begin(),
         m_entries.end(),

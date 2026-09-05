@@ -12,17 +12,23 @@
 namespace Slic3r::App {
 
 /**
- * @brief Custom controls that stand in for the default one-row-per-setting form.
+ * @brief The controls that stand in for the default one-row-per-setting form.
  *
- * This is the seam between the config and what the user sees. Anything that
- * wants to present a group of settings as something other than a list of rows
- * registers here; everything unregistered keeps rendering exactly as it does
- * today, so adopting this is per-group and reversible.
+ * This is the seam between the config and what the user sees. The form is
+ * otherwise generated straight from the config -- one row per setting, in the
+ * group its definition names -- which is a faithful view of the data and often
+ * a poor view of the decision.
  *
- * It is also where a plugin would eventually attach. Note the factory returns a
- * widget rather than taking a draw callback: this is an immediate-mode UI whose
- * render runs every frame alongside the 3D scene, so an element is built once
- * and updated on change, never redrawn by a caller-supplied function.
+ * Everything registered here is declared by a plugin, not compiled in: see
+ * install_plugin_form_specs(), which is the only way anything gets in. That is
+ * deliberate. A choice about how eighteen infill patterns are best presented is
+ * a judgement that will change, that different people will make differently,
+ * and that nobody should have to rebuild the slicer to revisit.
+ *
+ * Note the factory returns a widget rather than taking a draw callback: this is
+ * an immediate-mode UI whose render runs every frame alongside the 3D scene, so
+ * an element is built once and updated on change, never redrawn by a
+ * caller-supplied function -- and certainly not by a script.
  */
 class ConfigFormElementRegistry
 {
@@ -40,11 +46,32 @@ public:
         Factory factory;
     };
 
-    /// The registry, with the built-in elements registered on first access.
+    /**
+     * @brief A boolean that turns a whole option group on and off.
+     *
+     * Registered where a group is a feature plus its parameters: the switch
+     * moves out of the rows and into the group's heading, and the rest of the
+     * group collapses while it is off.
+     */
+    struct SectionToggle
+    {
+        Domain::ConfigItemDef::Category category{Domain::ConfigItemDef::Category::Unknown};
+        Domain::ConfigItemDef::OptionGroup option_group{
+            Domain::ConfigItemDef::OptionGroup::Unknown
+        };
+        std::string key;
+    };
+
     static ConfigFormElementRegistry& instance();
 
-    /// Register an element. Later registrations render after earlier ones.
-    void register_element(Entry entry);
+    /**
+     * @brief Replace every registered control.
+     *
+     * Rescanning plugins is a fresh start -- one may have been installed,
+     * removed, or edited on disk -- and rebuilding from what is there now is
+     * simpler to be sure of than unpicking what each plugin contributed.
+     */
+    void set_form_controls(std::vector<Entry> entries, std::vector<SectionToggle> toggles);
 
     /// Elements standing in for part of this group, in registration order.
     std::vector<const Entry*> elements_for(
@@ -52,7 +79,18 @@ public:
         Domain::ConfigItemDef::OptionGroup option_group
     ) const;
 
-    /// True when an element renders this setting, so no default row should.
+    /// The gate for this group, or nullptr when it has none.
+    const SectionToggle* section_toggle_for(
+        Domain::ConfigItemDef::Category category,
+        Domain::ConfigItemDef::OptionGroup option_group
+    ) const;
+
+    /**
+     * @brief True when this setting is rendered elsewhere, so no row should.
+     *
+     * Covers both an element that has claimed it and a gate promoted to the
+     * group's heading.
+     */
     bool is_claimed(
         Domain::ConfigItemDef::Category category,
         Domain::ConfigItemDef::OptionGroup option_group,
@@ -63,6 +101,7 @@ private:
     ConfigFormElementRegistry() = default;
 
     std::vector<Entry> m_entries;
+    std::vector<SectionToggle> m_section_toggles;
 };
 
 } // namespace Slic3r::App

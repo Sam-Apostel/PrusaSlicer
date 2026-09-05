@@ -75,6 +75,14 @@ protected:
      */
     bool any_claimed_setting_applies() const;
 
+    /**
+     * @brief The first requirement of a setting that does not hold, or nullptr.
+     *
+     * A requirement carries the reason it is not met, which is worth showing:
+     * a control that is greyed out for a reason the user cannot see is only
+     * marginally better than one that accepts the value and fails at slice time.
+     */
+    const Domain::ConfigItemRequirement* unmet_requirement(const std::string& key) const;
 
     /// The claimed setting, or nullptr when this config box does not carry it.
     const Domain::ConfigItem* config_item(const std::string& key) const;

@@ -33,6 +33,10 @@ public:
 private:
     void clear();
     void scan(const std::string& path);
+
+    /// Hand every form plugin's declared controls to the settings form.
+    void install_form_elements();
+
     void finalize_run();
 private:
     struct PluginData

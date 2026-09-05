@@ -50,6 +50,17 @@ bool ConfigFormElement::any_claimed_setting_applies() const
     return false;
 }
 
+const Domain::ConfigItemRequirement* ConfigFormElement::unmet_requirement(const std::string& key
+) const
+{
+    const Domain::ConfigItemLookup* lookup =
+        m_context.setter == nullptr ? nullptr : m_context.setter->item_lookup();
+    const Domain::ConfigItem* item = config_item(key);
+    if (lookup == nullptr || item == nullptr)
+        return nullptr;
+    return Domain::first_unmet(item->def().requirements, *lookup);
+}
+
 void ConfigFormElement::refresh_element()
 {
     set_enabled(any_claimed_setting_applies());
