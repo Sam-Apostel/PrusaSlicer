@@ -8,13 +8,28 @@
 #include <boost/filesystem/path.hpp>
 #include <tl/expected.hpp>
 
+#include "Slic3r/App/Config/FormSpec.hpp"
 #include "Slic3r/Biz/Lua/LuaEngine.hpp"
 
 namespace Slic3r::App::Lua {
 
 enum class PluginType
 {
-    ProjectPlugin
+    ProjectPlugin,
+    /**
+     * @brief A plugin that changes how settings are rendered, not what they are.
+     *
+     * It declares controls rather than drawing them. The settings form is an
+     * immediate-mode UI redrawn every frame alongside the 3D scene, so calling
+     * into Lua to paint it would put a script interpreter in the frame loop.
+     * Declaring instead means the script runs once, at scan time, and the
+     * controls it asked for are built and driven in C++ from then on.
+     *
+     * Nothing about the config changes: the controls read and write the same
+     * settings through the same path an ordinary row uses, so profiles, the
+     * slicing backend and 3MFs never learn that a plugin was involved.
+     */
+    FormPlugin
 };
 
 tl::expected<PluginType, std::string> parse_plugin_type(std::string_view s);
@@ -40,6 +55,8 @@ struct PluginMeta
     std::optional<std::string> title;
     std::vector<std::string> menu;
     PluginParamDefs params;
+    /// FormPlugin only: the controls this plugin declares.
+    std::vector<FormElementSpec> form_elements;
 };
 
 

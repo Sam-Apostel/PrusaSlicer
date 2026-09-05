@@ -15,9 +15,82 @@ namespace fs = boost::filesystem;
 
 namespace {
 const std::unordered_map<PluginType, std::string> PLUGIN_TYPE_NAMES = {
-    {PluginType::ProjectPlugin, "project.plugin"}
+    {PluginType::ProjectPlugin, "project.plugin"},
+    {PluginType::FormPlugin, "form.plugin"}
 };
+
+const std::unordered_map<std::string, FormElementSpec::Kind> FORM_ELEMENT_KINDS = {
+    {"cards", FormElementSpec::Kind::Cards},
+    {"slider", FormElementSpec::Kind::Slider},
+    {"choice", FormElementSpec::Kind::Choice},
+    {"section_toggle", FormElementSpec::Kind::SectionToggle}
+};
+
+/**
+ * @brief Read one declared control out of its Lua table.
+ *
+ * Shape errors are rejections rather than defaults. A spec whose kind is
+ * misspelled or whose key is missing cannot render anything, and quietly
+ * skipping it would leave the author looking for a control that never had a
+ * chance -- while the settings themselves keep their ordinary rows either way.
+ */
+tl::expected<FormElementSpec, std::string> parse_form_element(const sol::table& t)
+{
+    const auto kind_name = t.get<std::optional<std::string>>("kind");
+    if (!kind_name.has_value())
+        return tl::unexpected{"form element has no 'kind'"};
+
+    const auto kind_it = FORM_ELEMENT_KINDS.find(*kind_name);
+    if (kind_it == FORM_ELEMENT_KINDS.end())
+        return tl::unexpected{fmt::format("unknown form element kind '{}'", *kind_name)};
+
+    FormElementSpec spec;
+    spec.kind    = kind_it->second;
+    spec.key     = t.get_or<std::string>("key", std::string{});
+    spec.columns = t.get_or<size_t>("columns", size_t{1});
+    spec.step    = t.get_or<double>("step", 1.0);
+    spec.label   = t.get_or<std::string>("label", std::string{});
+
+    if (spec.kind != FormElementSpec::Kind::Choice) {
+        if (spec.key.empty())
+            return tl::unexpected{fmt::format("'{}' element has no 'key'", *kind_name)};
+        return spec;
+    }
+
+    if (!t["options"].is<sol::table>())
+        return tl::unexpected{"'choice' element has no 'options'"};
+
+    sol::table options = t["options"];
+    options.for_each(
+        [&spec](const sol::object&, const sol::table& o)
+        {
+            ChoiceOptionSpec option;
+            option.label       = o.get_or<std::string>("label", std::string{});
+            option.description = o.get_or<std::string>("description", std::string{});
+            if (o["set"].is<sol::table>()) {
+                sol::table set = o["set"];
+                set.for_each(
+                    [&option](const sol::object& key, const sol::object& value)
+                    { option.flags.emplace(key.as<std::string>(), value.as<bool>()); }
+                );
+            }
+            if (o["reveals"].is<sol::table>()) {
+                sol::table reveals = o["reveals"];
+                reveals.for_each(
+                    [&option](const sol::object&, const sol::object& value)
+                    { option.reveals.emplace_back(value.as<std::string>()); }
+                );
+            }
+            spec.options.push_back(std::move(option));
+        }
+    );
+
+    if (spec.options.size() < 2)
+        return tl::unexpected{"'choice' element needs at least two options"};
+
+    return spec;
 }
+} // namespace
 
 tl::expected<PluginType, std::string> parse_plugin_type(std::string_view s)
 {
@@ -114,6 +187,31 @@ Plugin::parse(Biz::Lua::LuaEngine& lua, const std::string& id_prefix, const std:
     meta.type = type_result.value();
     meta.title = info.get<std::optional<std::string>>("title");
 
+    if (meta.type == PluginType::FormPlugin) {
+        // A form plugin is a declaration, not a program: no execute(), no menu
+        // entry, nothing to run. The whole plugin is the table it defines.
+        if (!state["forms"].is<sol::table>()) {
+            return tl::unexpected{"Missing forms table"};
+        }
+        sol::table forms = state["forms"];
+        forms.for_each(
+            [&meta, &path](const sol::object&, const sol::table& element)
+            {
+                if (auto spec = parse_form_element(element)) {
+                    meta.form_elements.push_back(std::move(spec.value()));
+                } else {
+                    // Reported here rather than returned, so one bad entry
+                    // costs that entry and the rest of the file still loads.
+                    SPDLOG_ERROR("Plugin {}: {}", path, spec.error());
+                }
+            }
+        );
+        if (meta.form_elements.empty()) {
+            return tl::unexpected{"forms table declares nothing that could be rendered"};
+        }
+        return Plugin{path, meta};
+    }
+
     if (meta.type != PluginType::ProjectPlugin) {
         return tl::unexpected{fmt::format("Unsupported plugin type '{}'", to_string(meta.type))};
     }
@@ -151,6 +249,14 @@ Plugin::Plugin(std::string path, PluginMeta meta) : m_path(std::move(path)), m_m
 
 void Plugin::execute(Biz::Lua::LuaEngine& lua, const PluginParamValueMap& params) const
 {
+    if (m_meta.type == PluginType::FormPlugin) {
+        // Nothing to run: it declared controls, which were built at scan time.
+        // Nothing offers it either -- form plugins get no menu entry -- so
+        // reaching here means a caller is treating a declaration as a program.
+        SPDLOG_ERROR("Plugin {} declares form controls and cannot be executed", m_meta.id);
+        return;
+    }
+
     SafeFileResolver resolver{m_path};
     lua.set_path_resolver(resolver);
 
