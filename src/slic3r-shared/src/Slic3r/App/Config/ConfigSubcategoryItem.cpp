@@ -4,6 +4,7 @@
 #include "Slic3r/Biz/I18N/I18N.hpp"
 
 #include "Slic3r/App/Config/ConfigFormElementRegistry.hpp"
+#include "Slic3r/App/Config/SectionToggleElement.hpp"
 #include "Slic3r/App/Yoga/Text.hpp"
 #include "Slic3r/App/Imgui/ImguiExtension.hpp"
 
@@ -34,12 +35,25 @@ ConfigSubcategoryItem::ConfigSubcategoryItem(
     set_gap(0);
     set_padding(Paddings(20.f, 20.f, 20.f, 0.f));
 
-    m_label = emplace_back<Text>(
+    // The heading is a row rather than a bare label, because a group whose
+    // settings all hang off one switch puts that switch here, beside the name
+    // of the thing it switches.
+    m_heading = emplace_back<Item>();
+    m_heading->set_orientation(Orientation::Horizontal);
+    m_heading->set_align_items(YGAlignCenter);
+    m_heading->set_gap(10);
+
+    m_label = m_heading->emplace_back<Text>(
         Biz::_u8(
             Domain::ConfigItemDef::translate_option_group(m_state->config_item->def().option_group)
         ),
         Render::ImguiFontType::Bold
     );
+    // Takes the space the switch does not, and gives it back on a narrow panel
+    // rather than pushing the switch off the end.
+    m_label->set_flex_grow(1);
+    m_label->set_flex_shrink(1);
+    m_label->set_wrap_mode(Text::WrapMode::WrapElide);
 
     // Custom controls render above the default rows. Built before the row list
     // so that they keep that position as the list changes.
@@ -101,6 +115,12 @@ void ConfigSubcategoryItem::navigate_to_item(const Domain::ConfigItem* config_it
     const std::string& name = config_item->name();
     for (size_t row_index = 0; row_index < m_rows_filter_list->size(); ++row_index) {
         if (m_rows_filter_list->at(row_index).config_item->name() == name) {
+            // Being pointed at a row inside a collapsed group has to open it.
+            // Otherwise a search for a setting whose feature is switched off
+            // highlights a row nobody can see, and looks like a search that
+            // found nothing.
+            m_force_expanded = true;
+            apply_section_visibility();
             m_rows_list_view->item_at(row_index)->navigate_to_item(config_item);
             break;
         }
@@ -109,9 +129,30 @@ void ConfigSubcategoryItem::navigate_to_item(const Domain::ConfigItem* config_it
 
 void ConfigSubcategoryItem::clear_navigation()
 {
+    m_force_expanded = false;
+    apply_section_visibility();
     for (size_t row_index = 0; row_index < m_rows_list_view->object_count(); ++row_index) {
         m_rows_list_view->item_at(row_index)->clear_navigation();
     }
+}
+
+void ConfigSubcategoryItem::apply_section_visibility()
+{
+    const bool expanded =
+        m_section_toggle == nullptr || m_force_expanded || m_section_toggle->is_on();
+    m_form_elements->set_visible(expanded);
+    m_rows_list_view->set_visible(expanded);
+}
+
+void ConfigSubcategoryItem::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size)
+{
+    // Every frame, like the rest of this UI. Nothing notifies us that the
+    // switch was flipped, or that a preset switch or an undo flipped it; the
+    // switch itself only learns in its own render, which runs after this one,
+    // so the group follows a frame behind. Two calls to set_visible with the
+    // value they already have is not worth avoiding.
+    apply_section_visibility();
+    Rectangle::render(pos, size);
 }
 
 void ConfigSubcategoryItem::on_data_update()
@@ -138,6 +179,28 @@ void ConfigSubcategoryItem::rebuild_form_elements()
 {
     while (m_form_elements->object_count() > 0)
         m_form_elements->remove(m_form_elements->get_item(0));
+
+    if (m_section_toggle != nullptr) {
+        m_heading->remove(m_section_toggle);
+        m_section_toggle = nullptr;
+    }
+    m_force_expanded = false;
+
+    if (const ConfigFormElementRegistry::SectionToggle* toggle =
+            ConfigFormElementRegistry::instance().section_toggle_for(m_category, m_option_group))
+    {
+        auto* element = m_heading->emplace_back<SectionToggleElement>(
+            ConfigFormContext{&m_cbi_container, &m_cbi, m_cbi_index, {toggle->key}},
+            toggle->key
+        );
+        // A printer technology that does not define the gate gets its group
+        // back unchanged rather than an empty switch and a group that can
+        // never be opened.
+        if (element->valid())
+            m_section_toggle = element;
+        else
+            m_heading->remove(element);
+    }
 
     for (const ConfigFormElementRegistry::Entry* entry :
          ConfigFormElementRegistry::instance().elements_for(m_category, m_option_group))
