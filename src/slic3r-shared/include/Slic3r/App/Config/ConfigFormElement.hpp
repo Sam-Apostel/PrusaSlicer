@@ -3,6 +3,7 @@
 #include "Slic3r/App/Yoga/Item.hpp"
 #include "Slic3r/Domain/Config.hpp"
 
+#include <set>
 #include <string>
 
 namespace Slic3r::Biz {
@@ -18,6 +19,8 @@ struct ConfigFormContext
     Biz::IConfigBoxSetter* setter{nullptr};
     Biz::ConfigBoxInteractor* cbi{nullptr};
     size_t cbi_index{0};
+    /// Settings this element renders, so it can honour their own rules.
+    std::set<std::string> claimed_keys;
 };
 
 /**
@@ -50,7 +53,29 @@ public:
      */
     virtual void refresh_from_config() = 0;
 
+    /**
+     * @brief Re-read the config and re-apply the claimed settings' own rules.
+     *
+     * Elements call this from their render rather than refresh_from_config()
+     * directly, so that honouring a rule is not something each one has to
+     * remember. A claimed setting gets no default row, so its enable_if would
+     * otherwise go unenforced — an element replacing a row inherits the row's
+     * obligations along with its job.
+     */
+    void refresh_element();
+
 protected:
+    /**
+     * @brief Whether any claimed setting currently applies.
+     *
+     * Any rather than all: a composite may claim settings whose rules are
+     * mutually exclusive — the travel-avoidance strategies disable each other —
+     * and requiring all of them to hold would disable the control permanently.
+     * The element is relevant while at least one setting it renders is.
+     */
+    bool any_claimed_setting_applies() const;
+
+
     /// The claimed setting, or nullptr when this config box does not carry it.
     const Domain::ConfigItem* config_item(const std::string& key) const;
 

@@ -2,6 +2,7 @@
 
 #include "Slic3r/Biz/ConfigBoxInteractor.hpp"
 #include "Slic3r/Biz/IConfigBoxSetter.hpp"
+#include "Slic3r/Domain/ConfigItemPredicate.hpp"
 
 namespace Slic3r::App {
 
@@ -26,6 +27,33 @@ void ConfigFormElement::set_flag(const std::string& key, bool value)
     if (item == nullptr || m_context.setter == nullptr)
         return;
     m_context.setter->set_item_value(*item, Domain::ConfigValue{value}, {m_context.cbi_index});
+}
+
+bool ConfigFormElement::any_claimed_setting_applies() const
+{
+    const Domain::ConfigItemLookup* lookup =
+        m_context.setter == nullptr ? nullptr : m_context.setter->item_lookup();
+    if (lookup == nullptr || m_context.claimed_keys.empty())
+        return true;
+
+    for (const std::string& key : m_context.claimed_keys) {
+        const Domain::ConfigItem* item = config_item(key);
+        if (item == nullptr)
+            continue;
+        const Domain::ConfigItemDef& def = item->def();
+        if (Domain::first_unmet(def.requirements, *lookup) == nullptr
+            && Domain::evaluate(def.enable_if, *lookup))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ConfigFormElement::refresh_element()
+{
+    set_enabled(any_claimed_setting_applies());
+    refresh_from_config();
 }
 
 int ConfigFormElement::enum_of(const std::string& key, int fallback) const
