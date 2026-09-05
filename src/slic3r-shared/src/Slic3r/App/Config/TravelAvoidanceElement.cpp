@@ -158,7 +158,7 @@ void TravelAvoidanceElement::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& s
     // from an undo, a preset switch or a write elsewhere, and none of those
     // notify this element. refresh_from_config() returns immediately unless the
     // chosen strategy actually differs.
-    refresh_from_config();
+    refresh_element();
     Item::render(pos, size);
 }
 

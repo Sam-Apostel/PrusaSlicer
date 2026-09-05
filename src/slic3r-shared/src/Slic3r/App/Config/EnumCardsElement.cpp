@@ -89,7 +89,7 @@ void EnumCardsElement::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size)
 {
     // Re-read every frame: an undo, a preset switch or a write elsewhere does
     // not notify this element, and the check is a comparison unless it changed.
-    refresh_from_config();
+    refresh_element();
     Item::render(pos, size);
 }
 

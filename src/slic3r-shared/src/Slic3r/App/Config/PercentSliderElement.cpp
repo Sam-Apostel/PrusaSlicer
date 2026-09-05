@@ -102,7 +102,7 @@ void PercentSliderElement::refresh_from_config()
 
 void PercentSliderElement::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size)
 {
-    refresh_from_config();
+    refresh_element();
     Item::render(pos, size);
 }
 

@@ -139,10 +139,15 @@ void ConfigSubcategoryItem::rebuild_form_elements()
     while (m_form_elements->object_count() > 0)
         m_form_elements->remove(m_form_elements->get_item(0));
 
-    const ConfigFormContext context{&m_cbi_container, &m_cbi, m_cbi_index};
     for (const ConfigFormElementRegistry::Entry* entry :
          ConfigFormElementRegistry::instance().elements_for(m_category, m_option_group))
     {
+        // The element is told which settings it stands in for, so it can honour
+        // their enable_if and requirements. Those settings get no default row,
+        // so nothing else is left to enforce them.
+        const ConfigFormContext context{
+            &m_cbi_container, &m_cbi, m_cbi_index, entry->claimed_keys
+        };
         if (std::unique_ptr<ConfigFormElement> element = entry->factory(context))
             m_form_elements->append(std::move(element));
     }
