@@ -84,6 +84,37 @@ ConfigFormElementRegistry& ConfigFormElementRegistry::instance()
         cards(Category::Print_LayersSurfaces, OptionGroup::Print_LayerSurfaces_Ironing,
               "ironing_type");
 
+        // Groups that are one feature and its parameters. In each, every other
+        // setting in the group already carries an enable_if naming this key
+        // (see apply_dependency_rules in ConfigDefsFDM.cpp), so collapsing the
+        // group while the switch is off hides only settings that were inert.
+        //
+        // Deliberately not every group whose first setting is a boolean:
+        //
+        // - automatic_infill_combination and automatic_extrusion_widths pick
+        //   between automatic and manual rather than switching a feature off.
+        //   Their groups hold the manual values, which apply while the box is
+        //   *clear*; collapsing on "off" would hide the half that is in use.
+        // - travel_ramping_lift and filament_multitool_ramming do gate their
+        //   groups, but nothing in the config says so yet. A collapse resting
+        //   on this list alone silently hides a setting the day someone adds
+        //   one to the group, so the rule comes first.
+        registry.register_section_toggle(SectionToggle{
+            .category     = Category::Print_LayersSurfaces,
+            .option_group = OptionGroup::Print_LayerSurfaces_Ironing,
+            .key          = "ironing"
+        });
+        registry.register_section_toggle(SectionToggle{
+            .category     = Category::Print_MultiMaterial,
+            .option_group = OptionGroup::Print_MultiMaterial_WipeTower,
+            .key          = "wipe_tower"
+        });
+        registry.register_section_toggle(SectionToggle{
+            .category     = Category::Print_MultiMaterial,
+            .option_group = OptionGroup::Print_MultiMaterial_OozePrevention,
+            .key          = "ooze_prevention"
+        });
+
         return true;
     }();
     (void) builtins_registered;
@@ -108,12 +139,36 @@ std::vector<const ConfigFormElementRegistry::Entry*> ConfigFormElementRegistry::
     return found;
 }
 
+void ConfigFormElementRegistry::register_section_toggle(SectionToggle toggle)
+{
+    m_section_toggles.push_back(std::move(toggle));
+}
+
+const ConfigFormElementRegistry::SectionToggle* ConfigFormElementRegistry::section_toggle_for(
+    const Domain::ConfigItemDef::Category category,
+    const Domain::ConfigItemDef::OptionGroup option_group
+) const
+{
+    // Backwards, so a later registration replaces an earlier one. A group has
+    // one switch; a plugin registering a gate for a group that already has one
+    // is taking it over, not adding a second.
+    for (auto it = m_section_toggles.rbegin(); it != m_section_toggles.rend(); ++it) {
+        if (it->category == category && it->option_group == option_group)
+            return &*it;
+    }
+    return nullptr;
+}
+
 bool ConfigFormElementRegistry::is_claimed(
     const Domain::ConfigItemDef::Category category,
     const Domain::ConfigItemDef::OptionGroup option_group,
     const std::string& key
 ) const
 {
+    const SectionToggle* toggle = section_toggle_for(category, option_group);
+    if (toggle != nullptr && toggle->key == key)
+        return true;
+
     return std::any_of(
         m_entries.begin(),
         m_entries.end(),
