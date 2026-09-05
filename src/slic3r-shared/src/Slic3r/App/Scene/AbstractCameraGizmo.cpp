@@ -342,7 +342,7 @@ GizmoActivationState AbstractCameraGizmo::on_mouse(GizmoEventContext& ctx, bool 
         float wheel_delta_y = event.wheel_delta_y();
         if (AppServices::instance().app_config().get<bool>("reverse_mouse_wheel_zoom"))
             wheel_delta_y = -wheel_delta_y;
-        update_zoom(wheel_delta_y);
+        zoom_at(wheel_delta_y, event.x(), event.y(), ctx.screen_info());
         return (m_state == State::Inactive) ? GizmoActivationState::Inactive : GizmoActivationState::Done;
     }
     if (m_state == State::Inactive)
@@ -381,6 +381,44 @@ void AbstractCameraGizmo::update_pan(const Vec3d& delta, bool synchronize_cam_pi
     trackball.set_target(trackball.target() + delta);
     if (synchronize_cam_pivot)
         trackball.synchronize_pivot_with_target();
+}
+
+void AbstractCameraGizmo::zoom_at(
+    float wheel_delta_y,
+    double mouse_x,
+    double mouse_y,
+    const Render::ScreenInfo& screen_info
+)
+{
+    if (wheel_delta_y == 0)
+        return;
+
+    // Zoom towards the cursor rather than the middle of the viewport: whatever
+    // is under the pointer is what the user is looking at, and zooming about the
+    // centre pushes it off screen just as it gets big enough to see.
+    //
+    // Find the world point under the cursor, zoom, then find what is under the
+    // cursor now and shift the camera by the difference. The reference plane is
+    // the one through the orbit target facing the camera -- the same plane
+    // dragging pans along -- so zooming and panning agree about where the
+    // cursor is in the scene.
+    Vec3d before;
+    const bool anchored = pick_plane(mouse_x, mouse_y, screen_info, before);
+
+    update_zoom(wheel_delta_y);
+
+    Vec3d after;
+    if (anchored && pick_plane(mouse_x, mouse_y, screen_info, after)) {
+        // Translating the camera by (before - after) puts `before` back where
+        // `after` now projects, which is the cursor. Both points lie on the
+        // reference plane, so the shift stays in it and the plane itself does
+        // not move -- successive zooms keep measuring against the same one.
+        //
+        // The pivot is left where it is, as an unshifted drag-pan does: zooming
+        // towards a corner of the bed should not quietly redefine what the next
+        // orbit rotates around.
+        update_pan(before - after, false);
+    }
 }
 
 void AbstractCameraGizmo::update_zoom(float wheel_delta_y)

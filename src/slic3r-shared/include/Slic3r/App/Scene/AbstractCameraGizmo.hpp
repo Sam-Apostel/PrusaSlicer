@@ -59,6 +59,22 @@ private:
      * This effectively adjusts the camera sensitivity.
      */
     void update_rotation(float delta_x, float delta_y, float delta_for_180_rotation);
+
+    /**
+     * @brief Zoom while keeping the point under the cursor where it is.
+     *
+     * Zooming about the centre of the viewport pushes whatever the user is
+     * looking at off screen exactly as it becomes large enough to see. The
+     * keyboard zoom commands still use update_zoom(), since they have no cursor
+     * to zoom towards.
+     */
+    void zoom_at(
+        float wheel_delta_y,
+        double mouse_x,
+        double mouse_y,
+        const Render::ScreenInfo& screen_info
+    );
+
     void update_zoom(float wheel_delta_y);
 
     void look_at(const Domain::Vec3d& pos, double azimuth, double zenith);
