@@ -32,6 +32,8 @@ to `<config_dir>/lua/com.example.my-plugin` and run Plugins -> Rescan menu item 
 - Plugin file has to define `info` variable with description of the plugin.
 - A `project.plugin` has to define an `execute` function, that runs the plugin logic.
 - A `form.plugin` has to define a `forms` table instead; see [Form plugins](#form-plugins).
+- A `slicing.plugin` names the events it wants in `info.events` and defines a handler
+  for each; see [Slicing plugins](#slicing-plugins).
 
 ### Plugin Bundle Metadata `manifest.json`
 
@@ -65,7 +67,7 @@ This is list of recognized `manifest.json` fields.
 | `version`            | Yes      | Version of the plugin bundle                                                        |
 | `author`             | Yes      | Unique author identifier (e.g. Prusa Account handle)                                |
 | `description`        | No       | Description of the plugin bundle                                                    |
-| `required_apis`      | Yes      | Map of Plugin APIs (key) and its required minimal version (value). Known APIs are `project.plugin` and `form.plugin` |
+| `required_apis`      | Yes      | Map of Plugin APIs (key) and its required minimal version (value). Known APIs are `project.plugin`, `form.plugin` and `slicing.plugin` |
 | `category`           | No       | Category identifier                                                                 |
 | `web`                | No       | Plugin bundle hompage web URL                                                       |
 | `repo`               | No       | Plugin bundle source code repository URL                                            |                
@@ -75,7 +77,7 @@ This is list of recognized `manifest.json` fields.
 
 The table `info` describes plugin with following keys:
 - `id` (string) plugin unique identifier, recommended is reverse domain name like notation
-- `type` (string) type of plugin, either `'project.plugin'` or `'form.plugin'`.
+- `type` (string) type of plugin: `'project.plugin'`, `'form.plugin'` or `'slicing.plugin'`.
 - `title` (string) displayed plugin name
 - `menu` (string) menu item path to register the plugin under _Plugins_ menu item (e.g. `Calibration/My cool pattern`)
 - `params` (array) list of parameter descriptions with following keys:
@@ -234,9 +236,136 @@ and wrong the moment one of its settings still applies.
 place to look first. It is a plain text file in the installation: edit it, run
 _Plugins_ → _Rescan_, and the form changes.
 
-### Security model
+## Slicing plugins
 
-The plugin runtime is *intentionally limited and sandboxed*. 
+A `slicing.plugin` watches slicing. It is told about a slice that finished, is handed
+the numbers that came out of it, and can say something about them. It cannot change
+the result, the config or the G-code, and it runs after the G-code exists — so
+nothing it does, including failing outright, can affect what gets printed.
+
+That is the whole of the API, deliberately. Observing and changing are different
+features with different risk, and this one exists to find out whether the shape of
+the data is right before anything is allowed to change it.
+
+### Declaring events
+
+```lua
+info = {
+    id = "report",
+    type = "slicing.plugin",
+    title = "Slice report",
+    events = { "sliced" },
+}
+
+function on_sliced(slice)
+    print(string.format("%.1f g of filament", slice.filament.total_g))
+end
+```
+
+Events are declared rather than inferred from which handlers happen to exist. A
+misspelled handler is then a plugin that fails to load with a reason in the log,
+rather than one that silently never runs — which is the hardest kind of plugin bug
+to find, because there is nothing to look at.
+
+A slicing plugin has no `execute()` and gets no _Plugins_ menu entry. Edit the file
+and run _Plugins_ → _Rescan_ to reload it.
+
+| Event    | Handler       | When                                                     |
+|:---------|:--------------|:---------------------------------------------------------|
+| `sliced` | `on_sliced()` | A slice ran to completion and produced a full result      |
+
+`sliced` does **not** fire for a slice that was cancelled, failed, or was stopped at
+a step. Slicing restarts on almost every settings edit, so most slices are cancelled
+ones; only the last of a burst reaches a handler.
+
+### What a handler is given
+
+One argument, a plain table of numbers and strings built fresh for the call. Nothing
+in it refers back into the slicer, so writing to it changes only that copy and the
+copy is dropped when the handler returns.
+
+```lua
+slice = {
+  bed = 0,                  -- which bed on the plate was sliced
+  extruders = 2,            -- extruder count the G-code was produced for
+  spiral_vase = false,
+  sequential = false,
+  toolchanges = 12,
+
+  time = {
+    normal = { total = 4823.0, first_layer = 92.0 },   -- seconds
+    silent = { total = 5210.0, first_layer = 101.0 },  -- absent unless in stealth mode
+  },
+
+  filament = {
+    total_mm = 4820.5, total_cm3 = 11.6, total_g = 14.4,
+    total_cost = 0.36,                     -- in whatever unit the filament price is
+    per_extruder = {                       -- one entry per extruder, 1-based
+      { mm = 3000.0, cm3 = 7.2, g = 9.0, cost = 0.22 },
+      { mm = 1820.5, cm3 = 4.4, g = 5.4, cost = 0.14 },
+    },
+    per_role = {                           -- keyed by role, only roles used
+      perimeter = { mm = 1500.0, g = 4.5 },
+      internal_infill = { mm = 1800.0, g = 5.4 },
+    },
+    wipe_tower = { mm = 300.0, cm3 = 0.7, g = 0.9, cost = 0.02 },
+  },
+
+  filament_types = { initial = "PLA", printing = { "PLA", "PETG" } },
+  extruder_ids = { 0, 1 },                 -- as the config numbers them
+  initial_extruder_id = 0,
+
+  warnings = {
+    { code = "supports_turned_off", severity = "low" },
+  },
+}
+```
+
+Two numbering conventions meet in that table, so they are kept under names that say
+which is which. `filament.per_extruder` is a Lua array and is **1-based**, because
+that is what `#` and `ipairs` agree with — its first entry is extruder `0` in the
+config. `extruder_ids` and `initial_extruder_id` are the config's own numbers,
+unshifted, so they can be compared against a setting.
+
+Role keys (`perimeter`, `external_perimeter`, `internal_infill`, `solid_infill`,
+`top_solid_infill`, `ironing`, `bridge_infill`, `gap_fill`, `skirt_brim`,
+`support_material`, `support_material_interface`, `wipe_tower`, `custom`) and warning
+codes are stable identifiers, not the strings the UI shows. The UI strings are
+translated and get reworded; comparing against one would break the first time either
+happened, silently, and only for users in one language.
+
+### What a handler can do
+
+- `print(...)` writes to the slicer's log, tagged with the plugin id. This is where
+  to look while writing one.
+- `report(text)` or `report(title, text)` puts a notification on screen. A plugin's
+  report **replaces its own previous one** rather than stacking, because slicing runs
+  again on every edit.
+- `require` loads another `.lua` file from the plugin's own directory, as elsewhere.
+
+There is nothing else. No file writing, no config access, no way back into the
+slicer.
+
+### Failure
+
+A handler that throws is logged against its plugin and the slice is unaffected — it
+is already finished, and its G-code already exists. Each plugin gets its own Lua
+state and its own turn, so one failing costs only itself.
+
+The one thing that is not defended against is a handler that never returns: Lua has
+no preemption, so an infinite loop in a plugin freezes the UI. That is the same
+exposure `project.plugin` already has.
+
+### Bundled example
+
+`resources/lua/com.prusaslicer.sliceinfo/slice_report.lua` is a working slicing
+plugin: it sums up what a finished slice used and reports it. It is a plain text file
+in the installation — edit it, run _Plugins_ → _Rescan_, and slice again.
+
+## Security model
+
+The plugin runtime is *intentionally limited and sandboxed*. It applies to every
+plugin type. 
 
 There are two main restrictions to be aware of:
 - no standard `os` and `io` modules are available,

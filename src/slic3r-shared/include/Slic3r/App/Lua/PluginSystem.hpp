@@ -6,16 +6,23 @@
 #include "Slic3r/App/Lua/PluginRegistry.hpp"
 #include "Slic3r/App/Lua/IPluginRescanListener.hpp"
 #include "Slic3r/App/Lua/IPluginInstallationListener.hpp"
+#include "Slic3r/App/Lua/ISlicingPluginReportListener.hpp"
+#include "Slic3r/App/Lua/SlicingPluginRunner.hpp"
 #include "Slic3r/Biz/ProjectInteractor.hpp"
 #include "Slic3r/Biz/Emboss/IFontManager.hpp"
 #include "Slic3r/Biz/Platform//WithListeners.hpp"
+#include "Slic3r/Biz/Platform/ListenerScope.hpp"
 #include "Slic3r/App/Yoga/Item.hpp"
 
 namespace Slic3r::App::Lua {
 
 class PluginDialog;
 
-class PluginSystem : public WithListeners<IPluginRescanListener, IPluginInstallationListener>
+class PluginSystem :
+    public WithListeners<
+        IPluginRescanListener,
+        IPluginInstallationListener,
+        ISlicingPluginReportListener>
 {
 public:
     explicit PluginSystem(
@@ -51,6 +58,16 @@ private:
     Biz::Emboss::IFontManager& m_font_manager;
     std::optional<PluginData> m_current_plugin_data, m_last_plugin_data;
     Yoga::Passthrough<PluginDialog> m_dialog;
+
+    // Declared after m_registry, which it reads, and before the scope that
+    // subscribes it -- both are initialisation-order dependencies, and the
+    // scope unsubscribes in its destructor before the runner it points at goes.
+    SlicingPluginRunner m_slicing_runner;
+    Biz::ListenerScope<
+        Biz::Slicing::IStatusListener,
+        Biz::Slicing::SlicingInteractor,
+        SlicingPluginRunner>
+        m_slicing_runner_scope;
 };
 
 } // namespace Slic3r::App::Lua

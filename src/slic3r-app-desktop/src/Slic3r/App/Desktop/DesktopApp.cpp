@@ -556,6 +556,9 @@ void DesktopApp::finish_init()
     m_plater_module->plugin_system().add_listener<Lua::IPluginInstallationListener>(
         &app_services.pop_notification_center()
     );
+    m_plater_module->plugin_system().add_listener<Lua::ISlicingPluginReportListener>(
+        &app_services.pop_notification_center()
+    );
 
 #ifdef WIN32
     m_main_frame->register_win32_callbacks();

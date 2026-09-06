@@ -24,7 +24,9 @@ enum class PluginApiType
 {
     Project,
     /// Declaring how settings are rendered. See PluginType::FormPlugin.
-    Form
+    Form,
+    /// Watching slicing without taking part in it. See PluginType::SlicingPlugin.
+    Slicing
 };
 
 std::string to_string(PluginApiType pat);

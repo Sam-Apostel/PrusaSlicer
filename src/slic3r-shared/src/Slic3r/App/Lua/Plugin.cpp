@@ -2,6 +2,7 @@
 
 #include "Slic3r/Biz/Platform/PlatformServices.hpp"
 #include "Slic3r/Biz/Lua/LuaException.hpp"
+#include "Slic3r/Utils.hpp"
 
 #include <fmt/format.h>
 #include <ranges>
@@ -16,7 +17,12 @@ namespace fs = boost::filesystem;
 namespace {
 const std::unordered_map<PluginType, std::string> PLUGIN_TYPE_NAMES = {
     {PluginType::ProjectPlugin, "project.plugin"},
-    {PluginType::FormPlugin, "form.plugin"}
+    {PluginType::FormPlugin, "form.plugin"},
+    {PluginType::SlicingPlugin, "slicing.plugin"}
+};
+
+const std::unordered_map<SlicingEvent, std::string> SLICING_EVENT_NAMES = {
+    {SlicingEvent::Sliced, "sliced"}
 };
 
 const std::unordered_map<std::string, FormElementSpec::Kind> FORM_ELEMENT_KINDS = {
@@ -150,6 +156,27 @@ std::string to_string(PluginType type)
     return it->second;
 }
 
+tl::expected<SlicingEvent, std::string> parse_slicing_event(std::string_view s)
+{
+    auto r        = SLICING_EVENT_NAMES | std::views::values;
+    const auto it = std::ranges::find(r, s);
+    if (it == r.end()) {
+        return tl::unexpected{fmt::format("Unknown slicing event: {}", s)};
+    }
+    return it.base()->first;
+}
+
+std::string to_string(SlicingEvent event)
+{
+    const auto it = SLICING_EVENT_NAMES.find(event);
+    ASSERT(it != SLICING_EVENT_NAMES.end());
+    return it->second;
+}
+
+std::string handler_name(SlicingEvent event)
+{
+    return "on_" + to_string(event);
+}
 
 bool is_path_in_sandbox(
     const boost::filesystem::path& sandbox_path,
@@ -253,6 +280,53 @@ Plugin::parse(Biz::Lua::LuaEngine& lua, const std::string& id_prefix, const std:
         return Plugin{path, meta};
     }
 
+    if (meta.type == PluginType::SlicingPlugin) {
+        // Events are declared rather than inferred from which handlers happen
+        // to be defined. A misspelled handler would otherwise be a plugin that
+        // silently never runs, which is the single hardest kind of plugin bug
+        // to find -- there is nothing to look at.
+        //
+        // In `info` rather than a global of its own: it is one or two names,
+        // and it belongs beside the type it qualifies. (A form plugin's
+        // `forms` is a global because it is the whole plugin.)
+        if (!info["events"].is<sol::table>()) {
+            return tl::unexpected{"info has no events table"};
+        }
+        sol::table events = info["events"];
+        std::vector<std::string> problems;
+        events.for_each(
+            [&meta, &problems](const sol::object&, const sol::object& value)
+            {
+                if (value.get_type() != sol::type::string) {
+                    problems.emplace_back("events must be names of slicing events");
+                    return;
+                }
+                const auto event = parse_slicing_event(value.as<std::string>());
+                if (!event.has_value()) {
+                    problems.push_back(event.error());
+                    return;
+                }
+                if (std::ranges::find(meta.slicing_events, *event) == meta.slicing_events.end())
+                    meta.slicing_events.push_back(*event);
+            }
+        );
+        if (!problems.empty()) {
+            return tl::unexpected{problems.front()};
+        }
+        if (meta.slicing_events.empty()) {
+            return tl::unexpected{"events table names no slicing event"};
+        }
+        for (const SlicingEvent event : meta.slicing_events) {
+            const std::string handler = handler_name(event);
+            if (!state[handler].is<sol::function>()) {
+                return tl::unexpected{
+                    fmt::format("Declares '{}' but has no {}() function", to_string(event), handler)
+                };
+            }
+        }
+        return Plugin{path, meta};
+    }
+
     if (meta.type != PluginType::ProjectPlugin) {
         return tl::unexpected{fmt::format("Unsupported plugin type '{}'", to_string(meta.type))};
     }
@@ -290,11 +364,16 @@ Plugin::Plugin(std::string path, PluginMeta meta) : m_path(std::move(path)), m_m
 
 void Plugin::execute(Biz::Lua::LuaEngine& lua, const PluginParamValueMap& params) const
 {
-    if (m_meta.type == PluginType::FormPlugin) {
-        // Nothing to run: it declared controls, which were built at scan time.
-        // Nothing offers it either -- form plugins get no menu entry -- so
-        // reaching here means a caller is treating a declaration as a program.
-        SPDLOG_ERROR("Plugin {} declares form controls and cannot be executed", m_meta.id);
+    if (m_meta.type != PluginType::ProjectPlugin) {
+        // Nothing to run. A form plugin declared controls, which were built at
+        // scan time; a slicing plugin is waiting to be told about a slice.
+        // Neither is offered anywhere -- they get no menu entry -- so reaching
+        // here means a caller is treating a declaration as a program.
+        SPDLOG_ERROR(
+            "Plugin {} is a {} and has nothing to execute",
+            m_meta.id,
+            to_string(m_meta.type)
+        );
         return;
     }
 
@@ -324,4 +403,44 @@ void Plugin::execute(Biz::Lua::LuaEngine& lua, const PluginParamValueMap& params
     Biz::Platform::PlatformServices::instance().render_request_handler().request_render();
 }
 
+tl::expected<void, std::string>
+Plugin::deliver(Biz::Lua::LuaEngine& lua, const SlicingEvent event, const sol::table& payload) const
+{
+    if (m_meta.type != PluginType::SlicingPlugin) {
+        return tl::unexpected{fmt::format("{} does not watch slicing", to_string(m_meta.type))};
+    }
+    if (std::ranges::find(m_meta.slicing_events, event) == m_meta.slicing_events.end()) {
+        return tl::unexpected{fmt::format("did not declare '{}'", to_string(event))};
+    }
+
+    SafeFileResolver resolver{m_path};
+    lua.set_path_resolver(resolver);
+    const ScopeGuard clear_resolver{[&lua]() { lua.set_path_resolver(nullptr); }};
+
+    // The file is re-run for every delivery. That is what keeps one slice from
+    // seeing what a previous one left in a global -- a handler cannot
+    // accumulate state, so it cannot drift out of step with the result it is
+    // handed.
+    try {
+        lua.run_file(m_path);
+    } catch (Biz::Lua::LuaException& e) {
+        return tl::unexpected{e.what()};
+    } catch (std::exception& e) {
+        return tl::unexpected{e.what()};
+    }
+
+    const std::string handler = handler_name(event);
+    if (!lua.state()[handler].is<sol::function>()) {
+        // Present when the plugin was scanned, gone now: the file was edited
+        // and not rescanned.
+        return tl::unexpected{fmt::format("{}() is no longer defined", handler)};
+    }
+
+    sol::protected_function fn = lua.state()[handler];
+    if (const sol::protected_function_result ret = fn(payload); !ret.valid()) {
+        const sol::error err = ret;
+        return tl::unexpected{err.what()};
+    }
+    return {};
+}
 }

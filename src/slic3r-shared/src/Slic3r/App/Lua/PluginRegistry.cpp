@@ -79,7 +79,12 @@ void PluginRegistry::scan(const std::string& path)
                     plugin_path,
                     it->second.path()
                 );
-            } else {
+            } else if (!it->second.meta().menu.empty()) {
+                // Only plugins that ask for a menu path can collide over one.
+                // A plugin without one either gets an entry under its own id,
+                // which is unique already, or gets no entry at all -- and the
+                // disambiguation below appends to menu.back(), which an empty
+                // path does not have.
                 auto menu_item = fmt::to_string(fmt::join(it->second.meta().menu, "/"));
                 plugin_menu_items[menu_item].emplace_back(bundle.meta().id, &it->second);
             }

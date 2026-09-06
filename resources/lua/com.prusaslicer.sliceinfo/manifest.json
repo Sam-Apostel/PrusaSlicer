@@ -1,0 +1,12 @@
+{
+	"id": "com.prusaslicer.sliceinfo",
+	"name": "Slice report",
+	"license": "AGPL-3.0-only",
+	"min_slicer_version": "3.0.0",
+	"version": "1.0.0",
+	"author": "prusaslicer",
+	"description": "Sums up what a finished slice used, as an example of watching slicing from a plugin",
+	"required_apis": {
+		"slicing.plugin": "1.0.0"
+	}
+}
