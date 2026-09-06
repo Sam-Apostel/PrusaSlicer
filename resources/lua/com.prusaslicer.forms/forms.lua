@@ -41,6 +41,7 @@ forms = {
     -- Infill density is a quantity tuned by feel between two ends, which is
     -- what a slider is for. A text field asks for a number when what the user
     -- has is a sense of "a bit more than last time".
+    --
     -- Skipped on multi-tool printers: infill density can be overridden per
     -- tool, and the row is where that is done.
     {
