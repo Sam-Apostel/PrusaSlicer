@@ -3,6 +3,7 @@
 #include <boost/container_hash/hash.hpp>
 #include <cfloat>
 #include <functional>
+#include <map>
 #include <set>
 #include <string>
 #include <string_view>
@@ -420,6 +421,20 @@ struct ConfigItemDef
      * selected one, say.
      */
     ConfigItemPredicate visible_if;
+
+    /**
+     * @brief Rules for individual values of an enum, keyed by the value.
+     *
+     * A rule on the whole setting says whether it can be configured at all; one
+     * of these says whether a particular answer is available. Some of what the
+     * slicer refuses is only expressible this way: emitting machine limits is
+     * fine, and Klipper is fine, but not together -- as a rule on the setting
+     * that would disable a three-option dropdown of which two options are
+     * always valid, leaving the user no way out of the state they are in.
+     *
+     * A value with no rule here is always selectable.
+     */
+    std::map<int, ConfigItemPredicate> value_enable_if;
 
     /**
      * @brief Conditions this setting needs, each with a reason to show when unmet.
