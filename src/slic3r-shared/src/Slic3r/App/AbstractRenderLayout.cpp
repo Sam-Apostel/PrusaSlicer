@@ -1,5 +1,7 @@
 #include "Slic3r/App/AbstractRenderLayout.hpp"
 
+#include "Slic3r/App/PrintSettingsDialog.hpp"
+
 #include <imgui_internal.h>
 
 #include "Slic3r/App/Scene/IGizmo.hpp"
@@ -196,6 +198,16 @@ ToolBar* AbstractRenderLayout::tool_right_toolbar() const
 ToolBar* AbstractRenderLayout::tool_left_toolbar() const
 {
     return m_tool_left_toolbar;
+}
+
+std::optional<float> AbstractRenderLayout::settings_panel_left() const
+{
+    if (!m_sidebar_print)
+        return std::nullopt;
+    const Yoga::Popup& panel = m_sidebar_print->print_settings_dialog();
+    if (!panel.opened() || panel.content_item() == nullptr)
+        return std::nullopt;
+    return panel.content_item()->left();
 }
 
 void AbstractRenderLayout::set_sidebars_visible(bool visible)

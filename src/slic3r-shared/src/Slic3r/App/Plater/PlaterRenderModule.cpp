@@ -1228,6 +1228,8 @@ void PlaterRenderModule::render_scene(Render::CommandBuffer& cmd_buffer)
     Render::ScopedDebugGroup event_imgui_render("Plater Render", cmd_buffer);
     m_device->load_state();
 
+    update_settings_panel_camera_shift();
+
     cmd_buffer.set_viewport(Render::Rect::from(0, 0, m_screen_info));
     cmd_buffer.set_clear_values({0.61f, 0.61f, 0.61f, 1.00f});
     cmd_buffer.clear_buffers(true, true);
@@ -1372,6 +1374,29 @@ void PlaterRenderModule::on_scene_selection_changed(
 {
     this->update_object_selection();
     this->update_toolbar_visibility();
+}
+
+void PlaterRenderModule::update_settings_panel_camera_shift()
+{
+    const std::optional<float> panel_left = m_layout ? m_layout->settings_panel_left() : std::nullopt;
+
+    // Only the transitions matter. While the panel stays open the camera is the
+    // user's again -- they may pan and zoom underneath it, and re-centring every
+    // frame would fight them for it.
+    if (panel_left.has_value() == m_settings_panel_shift.has_value())
+        return;
+
+    auto& scene = m_scene_presenter->scene();
+    if (panel_left.has_value()) {
+        m_settings_panel_shift = Scene::pan_clear_of_panel(
+            scene.camera(),
+            scene.camera_trackball(),
+            m_screen_info.logical_to_physical(*panel_left)
+        );
+    } else {
+        Scene::unpan_clear_of_panel(scene.camera_trackball(), *m_settings_panel_shift);
+        m_settings_panel_shift.reset();
+    }
 }
 
 void PlaterRenderModule::on_screen_resized()

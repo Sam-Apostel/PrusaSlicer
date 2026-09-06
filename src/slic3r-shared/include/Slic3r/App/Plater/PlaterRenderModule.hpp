@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <memory>
 
 #include "Slic3r/App/Undo/Store.hpp"
@@ -250,6 +252,15 @@ private:
 
     // main window layout
     std::unique_ptr<PlaterRenderLayout> m_layout;
+
+    /**
+     * @brief Slide the camera clear of the settings panel while it is open.
+     *
+     * Set to the shift that was applied, so closing the panel can take exactly
+     * that back out rather than guessing where the camera was.
+     */
+    void update_settings_panel_camera_shift();
+    std::optional<Domain::Vec3d> m_settings_panel_shift;
     // Layout objects
     Yoga::Passthrough<TopBar> m_top_bar;
     Yoga::Passthrough<ObjectListWindow> m_object_list;

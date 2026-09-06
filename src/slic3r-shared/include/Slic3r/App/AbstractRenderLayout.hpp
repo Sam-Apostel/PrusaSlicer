@@ -8,6 +8,8 @@
 #include "Slic3r/App/CubeView.hpp"
 #include "Slic3r/App/SidebarBed.hpp"
 #include "Slic3r/App/SidebarPrint.hpp"
+
+#include <optional>
 #include "Slic3r/App/Render/ImguiTypes.hpp"
 #include "Slic3r/App/Render/ScreenInfo.hpp"
 #include "Slic3r/App/PopNotification/PopNotificationListView.hpp"
@@ -88,6 +90,16 @@ public:
     ToolBar* mode_toolbar() const;
 
     SidebarStackLayout* sidebar_stack_layout() const;
+
+    /**
+     * @brief Left edge of the settings panel while it is open, in logical pixels.
+     *
+     * The panel is an overlay, so the scene keeps the whole canvas and the panel
+     * is painted over the plate. Anything from here rightwards is covered.
+     *
+     * @return nullopt when no settings panel is open.
+     */
+    std::optional<float> settings_panel_left() const;
 
     void set_sidebars_visible(bool visible);
 
