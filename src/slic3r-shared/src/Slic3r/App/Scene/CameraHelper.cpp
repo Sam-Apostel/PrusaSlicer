@@ -10,6 +10,8 @@
 #include "Slic3r/Biz/Algorithms/Point.hpp"
 #include "Slic3r/App/Platform/AnimationManager.hpp"
 #include "Slic3r/App/Scene/CameraTargetAnimation.hpp"
+#include "Slic3r/App/Scene/Plane.hpp"
+#include "Slic3r/App/Scene/Ray.hpp"
 
 #if ENABLED_DEBUG_CAMERA
 #include <imgui/imgui.h>
@@ -21,6 +23,70 @@ using Slic3r::Domain::Transform3d;
 using Slic3r::Domain::Vec3d;
 
 namespace Slic3r::App::Scene {
+
+namespace {
+
+/// Where a ray through this viewport x lands on the plane through the target.
+bool point_on_target_plane(
+    const Camera& camera,
+    const CameraTrackballController& trackball,
+    double viewport_x,
+    Domain::Vec3d& out
+)
+{
+    const Render::Rect& viewport = camera.viewport();
+    const Ray ray                = camera.ray_at(viewport_x, viewport.y + viewport.height * 0.5);
+
+    const Domain::Vec3d n = camera.forward();
+    const Domain::Vec3d p = camera.position();
+    const double q        = p.dot(n) / n.dot(n);
+    const Plane plane{n, -trackball.distance_to_target() - q};
+
+    double t = 0.0;
+    if (!plane.intersects(ray, t))
+        return false;
+    out = ray.point_at(t);
+    return true;
+}
+
+} // namespace
+
+Domain::Vec3d pan_clear_of_panel(
+    const Camera& camera,
+    CameraTrackballController& trackball,
+    const double occluded_left
+)
+{
+    const Render::Rect& viewport = camera.viewport();
+    const double left            = viewport.x;
+    const double right           = viewport.x + viewport.width;
+
+    // Nothing covered, or nothing left over: either way there is no free middle
+    // to move towards, and moving anyway would strand the model off screen.
+    if (occluded_left >= right || occluded_left <= left)
+        return Domain::Vec3d::Zero();
+
+    Domain::Vec3d canvas_middle;
+    Domain::Vec3d free_middle;
+    if (!point_on_target_plane(camera, trackball, (left + right) * 0.5, canvas_middle)
+        || !point_on_target_plane(camera, trackball, (left + occluded_left) * 0.5, free_middle))
+    {
+        // A grazing view can leave the ray parallel to the plane. Leave the
+        // camera alone rather than move it by a number that means nothing.
+        return Domain::Vec3d::Zero();
+    }
+
+    // Move the camera the other way: what was in the middle of the canvas ends
+    // up in the middle of what is still visible.
+    const Domain::Vec3d shift = canvas_middle - free_middle;
+    trackball.set_target(trackball.target() + shift);
+    return shift;
+}
+
+void unpan_clear_of_panel(CameraTrackballController& trackball, const Domain::Vec3d& shift)
+{
+    trackball.set_target(trackball.target() - shift);
+}
 
 void zoom_to_box(Camera& camera, const Eigen::AlignedBox3d& aabb)
 {
