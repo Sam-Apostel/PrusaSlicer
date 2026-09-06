@@ -11,7 +11,12 @@
 -- Kinds:
 --
 --   cards           an enum as a list or grid instead of a dropdown.
---                   key, and optionally columns (default 1).
+--                   key, optionally columns (default 1), and optionally images
+--                   = a picture per value, keyed by the name the value has in a
+--                   profile. Paths are relative to this plugin's own directory
+--                   and may not leave it. A value with no picture, or one whose
+--                   file cannot be read, keeps its label and loses only the
+--                   picture -- so a partly illustrated enum is fine.
 --   slider          a percentage as a slider with a readout.
 --                   key, and optionally step (default 1).
 --   section_toggle  a yes/no setting moved into its group's heading, where it
@@ -68,11 +73,35 @@ forms = {
     { kind = "cards", key = "support_material_pattern" },
     { kind = "cards", key = "ironing_type" },
 
-    -- Infill pattern has eighteen options and no artwork yet, so three columns
-    -- of bare labels may well read worse than the dropdown it replaces. It is
-    -- here rather than compiled in precisely so that judging it is one line in
-    -- a text file: delete this entry and Plugins -> Rescan to compare.
-    { kind = "cards", key = "fill_pattern", columns = 3 },
+    -- Infill pattern: eighteen options nobody picks by reading the name. The
+    -- pictures are schematic on purpose -- one colour, one stroke weight, no
+    -- detail that dies at 64px -- because what is being compared is the shape
+    -- of the path, not what a slice of it looks like.
+    {
+        kind = "cards",
+        key = "fill_pattern",
+        columns = 3,
+        images = {
+            rectilinear        = "infill/rectilinear.svg",
+            alignedrectilinear = "infill/alignedrectilinear.svg",
+            grid               = "infill/grid.svg",
+            triangles          = "infill/triangles.svg",
+            stars              = "infill/stars.svg",
+            cubic              = "infill/cubic.svg",
+            line               = "infill/line.svg",
+            concentric         = "infill/concentric.svg",
+            honeycomb          = "infill/honeycomb.svg",
+            ["3dhoneycomb"]    = "infill/3dhoneycomb.svg",
+            gyroid             = "infill/gyroid.svg",
+            hilbertcurve       = "infill/hilbertcurve.svg",
+            archimedeanchords  = "infill/archimedeanchords.svg",
+            octagramspiral     = "infill/octagramspiral.svg",
+            adaptivecubic      = "infill/adaptivecubic.svg",
+            supportcubic       = "infill/supportcubic.svg",
+            lightning          = "infill/lightning.svg",
+            zigzag             = "infill/zigzag.svg",
+        },
+    },
 
     -- Groups that are one feature and its parameters. The switch moves into
     -- the heading it belongs to, and the group collapses while it is off

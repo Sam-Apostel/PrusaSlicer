@@ -179,10 +179,19 @@ forms = {
 
 | `kind`           | Renders                                             | Setting must be    | Keys                                            |
 |:-----------------|:----------------------------------------------------|:-------------------|:------------------------------------------------|
-| `cards`          | a list or grid of options instead of a dropdown      | a choice of values | `key`, optional `columns` (default 1)            |
+| `cards`          | a list or grid of options instead of a dropdown      | a choice of values | `key`, optional `columns` (default 1), optional `images` |
 | `slider`         | a slider with a readout                              | a percentage       | `key`, optional `step` (default 1)               |
 | `section_toggle` | a switch in the group's heading, gating the group    | yes/no             | `key`                                            |
 | `choice`         | several yes/no settings as the one choice they are   | yes/no per flag    | `label`, `options`                               |
+
+`images` on a `cards` control is a picture per value, keyed by the name the value
+has in a profile or a 3MF — `gyroid`, `grid`, `3dhoneycomb` — not by its display
+label, which is translated. Paths are relative to the plugin's own directory and
+are resolved and checked against it when the plugin is scanned, the same
+restriction `emboss_svg` and `load_stl` work under; one that escapes is dropped
+with a line in the log. A value with no picture, or one whose file cannot be
+read, keeps its label and loses only the picture, so an enum can be illustrated a
+few options at a time.
 
 Each `choice` option takes:
 

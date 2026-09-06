@@ -27,6 +27,27 @@ const std::unordered_map<std::string, FormElementSpec::Kind> FORM_ELEMENT_KINDS 
 };
 
 /**
+ * @brief Resolve a picture path declared by a plugin against its own directory.
+ *
+ * The same restriction the Lua file loaders work under: a plugin may reach the
+ * files it ships and nothing else. Checked here, once, when the plugin is
+ * scanned, rather than every time a card is built.
+ *
+ * @return the absolute path, or nullopt when it escapes the plugin's directory.
+ */
+std::optional<std::string> resolve_plugin_file(
+    const std::string& plugin_path,
+    const std::string& relative
+)
+{
+    const fs::path root     = fs::path{plugin_path}.parent_path();
+    const fs::path resolved = root / relative;
+    if (!is_path_in_sandbox(root, resolved))
+        return std::nullopt;
+    return resolved.string();
+}
+
+/**
  * @brief Read one declared control out of its Lua table.
  *
  * Shape errors are rejections rather than defaults. A spec whose kind is
@@ -34,7 +55,10 @@ const std::unordered_map<std::string, FormElementSpec::Kind> FORM_ELEMENT_KINDS 
  * skipping it would leave the author looking for a control that never had a
  * chance -- while the settings themselves keep their ordinary rows either way.
  */
-tl::expected<FormElementSpec, std::string> parse_form_element(const sol::table& t)
+tl::expected<FormElementSpec, std::string> parse_form_element(
+    const sol::table& t,
+    const std::string& plugin_path
+)
 {
     const auto kind_name = t.get<std::optional<std::string>>("kind");
     if (!kind_name.has_value())
@@ -50,6 +74,27 @@ tl::expected<FormElementSpec, std::string> parse_form_element(const sol::table& 
     spec.columns = t.get_or<size_t>("columns", size_t{1});
     spec.step    = t.get_or<double>("step", 1.0);
     spec.label   = t.get_or<std::string>("label", std::string{});
+
+    if (t["images"].is<sol::table>()) {
+        sol::table images = t["images"];
+        images.for_each(
+            [&spec, &plugin_path](const sol::object& key, const sol::object& value)
+            {
+                const std::string name = key.as<std::string>();
+                if (auto path = resolve_plugin_file(plugin_path, value.as<std::string>())) {
+                    spec.images.emplace(name, *path);
+                } else {
+                    // Dropped rather than fatal: the card keeps its label, and
+                    // one bad path does not cost the whole control.
+                    SPDLOG_ERROR(
+                        "Plugin {}: image for '{}' is outside the plugin directory",
+                        plugin_path,
+                        name
+                    );
+                }
+            }
+        );
+    }
 
     if (spec.kind != FormElementSpec::Kind::Choice) {
         if (spec.key.empty())
@@ -197,7 +242,7 @@ Plugin::parse(Biz::Lua::LuaEngine& lua, const std::string& id_prefix, const std:
         forms.for_each(
             [&meta, &path](const sol::object&, const sol::table& element)
             {
-                if (auto spec = parse_form_element(element)) {
+                if (auto spec = parse_form_element(element, path)) {
                     meta.form_elements.push_back(std::move(spec.value()));
                 } else {
                     // Reported here rather than returned, so one bad entry

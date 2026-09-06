@@ -54,6 +54,20 @@ struct FormElementSpec
     /// Cards: how many per row. One reads as a list, more as a grid.
     size_t columns{1};
 
+    /**
+     * @brief Cards: a picture per option, keyed by the value's serialized name.
+     *
+     * The name a value has in a profile or a 3MF -- "gyroid", "grid" -- because
+     * that is the identifier a plugin author can look up, and it does not move
+     * when the display label is retranslated.
+     *
+     * Paths are absolute by the time they get here, resolved and checked to be
+     * inside the declaring plugin's own directory when the plugin was scanned.
+     * A value with no entry, or one whose file cannot be read, keeps its label
+     * and loses only the picture.
+     */
+    std::map<std::string, std::string> images;
+
     /// Slider: the step it snaps to.
     double step{1.0};
 
