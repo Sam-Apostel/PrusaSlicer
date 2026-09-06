@@ -7,7 +7,6 @@
 #include "Slic3r/App/Config/ConfigItemSpinBox.hpp"
 
 #include "Slic3r/Biz/IConfigBoxSetter.hpp"
-#include "Slic3r/Domain/ConfigItemPredicate.hpp"
 #include <Slic3r/Biz/I18N/I18N.hpp>
 
 using namespace Slic3r::App::Yoga;
@@ -76,26 +75,14 @@ void ConfigRowItem::set_enabled_control(bool enabled)
 void ConfigRowItem::apply_enabled_state()
 {
     if (m_input)
-        m_input->set_enabled(m_enabled_by_caller && m_enabled_by_dependency);
+        m_input->set_enabled(m_enabled_by_caller && m_dependency.applies());
 }
 
 void ConfigRowItem::refresh_dependency_state()
 {
-    const Domain::ConfigItemLookup* lookup = m_cb_setter.item_lookup();
-    if (lookup == nullptr || m_state == nullptr)
+    if (m_state == nullptr || !m_dependency.refresh(*m_state, m_cb_setter))
         return;
 
-    const Domain::ConfigItemDef& def = m_state->def();
-    const Domain::ConfigItemRequirement* unmet =
-        Domain::first_unmet(def.requirements, *lookup);
-    const bool applies = unmet == nullptr && Domain::evaluate(def.enable_if, *lookup);
-
-    const std::string reason = unmet == nullptr ? std::string{} : Biz::_u8(unmet->reason);
-    if (applies == m_enabled_by_dependency && reason == m_shown_reason)
-        return;
-
-    m_enabled_by_dependency = applies;
-    m_shown_reason          = reason;
     apply_enabled_state();
     apply_label_color();
     apply_reason_text();
@@ -103,7 +90,7 @@ void ConfigRowItem::refresh_dependency_state()
 
 void ConfigRowItem::apply_reason_text()
 {
-    if (m_shown_reason.empty()) {
+    if (m_dependency.reason().empty()) {
         if (m_reason != nullptr)
             m_reason->set_visible(false);
         return;
@@ -118,7 +105,7 @@ void ConfigRowItem::apply_reason_text()
     // every settings row is built from, which is not worth doing sight unseen.
     // Only settings that declare requirements grow this text at all.
     if (m_reason == nullptr) {
-        m_reason = emplace_back<Text>(m_shown_reason);
+        m_reason = emplace_back<Text>(m_dependency.reason());
         m_reason->set_wrap_mode(Text::WrapMode::WrapElide);
         m_reason->set_flex_shrink(1.f);
         m_reason->set_max_width(260);
@@ -127,7 +114,7 @@ void ConfigRowItem::apply_reason_text()
             m_theme->color_imgui(Platform::Color::Text, Platform::ColorGroup::Disabled)
         );
     } else {
-        m_reason->set_text(m_shown_reason);
+        m_reason->set_text(m_dependency.reason());
     }
     m_reason->set_visible(true);
 }
@@ -139,7 +126,7 @@ void ConfigRowItem::apply_label_color()
     // right now", which is what the rule actually means. A dependency that does
     // not hold outranks the modified-value highlight: the value is still
     // modified, but saying so is noise while the setting has no effect.
-    if (!m_enabled_by_dependency) {
+    if (!m_dependency.applies()) {
         m_label->set_text_color(
             m_theme->color_imgui(Platform::Color::Text, Platform::ColorGroup::Disabled)
         );
@@ -164,6 +151,9 @@ void ConfigRowItem::on_data_update()
 
         if (m_input) {
             remove(m_input);
+            // The new input starts enabled, so whatever the rule last said has
+            // to be said again rather than skipped as unchanged.
+            m_dependency.invalidate();
         }
 
         m_control = ConfigItemControl::config_item_control_factory(
