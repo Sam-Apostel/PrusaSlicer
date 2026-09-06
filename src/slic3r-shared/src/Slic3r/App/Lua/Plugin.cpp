@@ -35,10 +35,8 @@ const std::unordered_map<std::string, FormElementSpec::Kind> FORM_ELEMENT_KINDS 
  *
  * @return the absolute path, or nullopt when it escapes the plugin's directory.
  */
-std::optional<std::string> resolve_plugin_file(
-    const std::string& plugin_path,
-    const std::string& relative
-)
+std::optional<std::string>
+resolve_plugin_file(const std::string& plugin_path, const std::string& relative)
 {
     const fs::path root     = fs::path{plugin_path}.parent_path();
     const fs::path resolved = root / relative;
@@ -55,10 +53,8 @@ std::optional<std::string> resolve_plugin_file(
  * skipping it would leave the author looking for a control that never had a
  * chance -- while the settings themselves keep their ordinary rows either way.
  */
-tl::expected<FormElementSpec, std::string> parse_form_element(
-    const sol::table& t,
-    const std::string& plugin_path
-)
+tl::expected<FormElementSpec, std::string>
+parse_form_element(const sol::table& t, const std::string& plugin_path)
 {
     const auto kind_name = t.get<std::optional<std::string>>("kind");
     if (!kind_name.has_value())

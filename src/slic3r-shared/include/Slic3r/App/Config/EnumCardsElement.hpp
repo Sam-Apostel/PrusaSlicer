@@ -43,8 +43,8 @@ public:
     EnumCardsElement(
         const ConfigFormContext& context,
         std::string key,
-        size_t columns                                 = 1,
-        std::map<std::string, std::string> images      = {}
+        size_t columns                            = 1,
+        std::map<std::string, std::string> images = {}
     );
 
     void refresh_from_config() override;

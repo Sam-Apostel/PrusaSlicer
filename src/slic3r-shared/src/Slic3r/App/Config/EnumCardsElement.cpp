@@ -18,7 +18,8 @@ EnumCardsElement::EnumCardsElement(
     const size_t columns,
     std::map<std::string, std::string> images
 ) :
-    ConfigFormElement(context), m_key(std::move(key))
+    ConfigFormElement(context),
+    m_key(std::move(key))
 {
     set_object_name("EnumCardsElement");
     set_orientation(Orientation::Vertical);
@@ -47,16 +48,15 @@ EnumCardsElement::EnumCardsElement(
             row->set_gap(10);
         }
         const Domain::EnumValueDef& value = values[i];
-        const auto image = images.find(value.str_serialized);
+        const auto image                  = images.find(value.str_serialized);
 
         // A picture where one was declared, a plain labelled button where not,
         // so an enum can be illustrated a few options at a time rather than all
         // or nothing.
         AbstractButton* card = nullptr;
         if (image != images.end()) {
-            card = row->emplace_back<EnumCard>(
-                translate(value.str_ui), Biz::_u8(def.tooltip), image->second
-            );
+            card = row->emplace_back<
+                EnumCard>(translate(value.str_ui), Biz::_u8(def.tooltip), image->second);
         } else {
             card = row->emplace_back<RadioButton>(translate(value.str_ui), Biz::_u8(def.tooltip));
         }

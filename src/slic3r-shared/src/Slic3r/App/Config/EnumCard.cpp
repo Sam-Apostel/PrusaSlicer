@@ -17,11 +17,7 @@ constexpr int IMAGE_SIZE = 64;
 
 } // namespace
 
-EnumCard::EnumCard(
-    const std::string& label,
-    const std::string& tooltip,
-    const std::string& image
-) :
+EnumCard::EnumCard(const std::string& label, const std::string& tooltip, const std::string& image) :
     RectangleButton(tooltip)
 {
     set_object_name("EnumCard");
@@ -81,9 +77,7 @@ void EnumCard::update_colors()
         button_color_group()
     ));
     if (m_label != nullptr) {
-        m_label->set_text_color(
-            m_theme->color_imgui(Platform::Color::Text, button_color_group())
-        );
+        m_label->set_text_color(m_theme->color_imgui(Platform::Color::Text, button_color_group()));
     }
 }
 

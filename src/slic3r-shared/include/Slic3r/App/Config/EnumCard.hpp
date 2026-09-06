@@ -34,7 +34,10 @@ public:
     EnumCard(const std::string& label, const std::string& tooltip, const std::string& image);
 
     /// False when no picture was given or the file could not be used.
-    bool has_image() const { return m_icon != nullptr; }
+    bool has_image() const
+    {
+        return m_icon != nullptr;
+    }
 
 protected:
     void checked_updated_internal() override;
