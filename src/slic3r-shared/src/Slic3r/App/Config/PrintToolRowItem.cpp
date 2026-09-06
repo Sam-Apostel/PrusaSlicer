@@ -320,6 +320,54 @@ void PrintToolRowItem::on_data_update()
     m_favorite_button->set_checked(m_state->is_favorite);
 }
 
+void PrintToolRowItem::refresh_dependency_state()
+{
+    // Only the multi-tool shape needs this. The single-tool one embeds a
+    // ConfigRowItem, which evaluates the same rules in its own render.
+    if (m_initialized_type != InitializedType::PrintTool || m_state == nullptr)
+        return;
+    if (!m_dependency.refresh(*m_state->print_item, m_cb_setter))
+        return;
+
+    // The whole row, not just the button: a setting that cannot apply cannot
+    // apply per tool either, so the override controls inside m_content are as
+    // inert as the print-level value above them. set_enabled walks the subtree.
+    const bool applies = m_dependency.applies();
+    if (m_main_button != nullptr)
+        m_main_button->set_enabled(applies);
+    if (m_content != nullptr)
+        m_content->set_enabled(applies);
+
+    const std::string& reason = m_dependency.reason();
+    if (reason.empty()) {
+        if (m_reason != nullptr)
+            m_reason->set_visible(false);
+        return;
+    }
+
+    // Built on first need, as in ConfigRowItem: almost no setting declares a
+    // requirement, and an empty label on every row would cost a node each.
+    if (m_reason == nullptr) {
+        m_reason = m_column->emplace_back<Text>(reason);
+        m_reason->set_wrap_mode(Text::WrapMode::WrapElide);
+        m_reason->set_flex_shrink(1.f);
+        m_reason->set_max_width(260);
+        m_reason->set_align({AlignH::Left, AlignV::Center});
+        m_reason->set_text_color(
+            m_theme->color_imgui(Platform::Color::Text, Platform::ColorGroup::Disabled)
+        );
+    } else {
+        m_reason->set_text(reason);
+    }
+    m_reason->set_visible(true);
+}
+
+void PrintToolRowItem::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size)
+{
+    refresh_dependency_state();
+    Rectangle::render(pos, size);
+}
+
 void PrintToolRowItem::clear()
 {
     if (m_initialized_type == InitializedType::PrintOnly) {
@@ -340,6 +388,11 @@ void PrintToolRowItem::clear()
 void PrintToolRowItem::initialize()
 {
     ASSERT(m_initialized_type == InitializedType::None);
+    // Whatever the rule last said was said to widgets that no longer exist.
+    m_dependency.invalidate();
+    if (m_reason != nullptr)
+        m_reason->set_visible(false);
+
     if (!m_state->shared_context.has_multiple_extruders || m_state->tool_overrides.empty()) {
         m_initialized_type = InitializedType::PrintOnly;
 

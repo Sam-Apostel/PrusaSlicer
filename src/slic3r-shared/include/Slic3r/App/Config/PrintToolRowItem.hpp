@@ -11,6 +11,7 @@
 
 #include "Slic3r/App/IConfigNavigable.hpp"
 #include "Slic3r/App/Yoga/Rectangle.hpp"
+#include "Slic3r/App/Config/ConfigRowDependency.hpp"
 #include "Slic3r/App/Config/ToolRowControl.hpp"
 #include "Slic3r/App/Yoga/ListView.hpp"
 
@@ -18,6 +19,10 @@ namespace Slic3r::Biz {
 class PrintToolConfigBoxInteractor;
 class ProjectInteractor;
 } // namespace Slic3r::Biz
+
+namespace Slic3r::App::Yoga {
+class Text;
+} // namespace Slic3r::App::Yoga
 
 namespace Slic3r::App {
 
@@ -57,6 +62,8 @@ public:
     void navigate_to_item(const Domain::ConfigItem* config_item) override;
     void clear_navigation() override;
 
+    void render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size) override;
+
     const ToolRowOverrideGroup& at(size_t index) const override;
     size_t size() const override;
 
@@ -82,6 +89,14 @@ protected:
     void clear();
     void initialize();
     void update_explanation();
+
+    /**
+     * @brief Re-evaluate the setting's rules and apply them to this row.
+     *
+     * Only for the multi-tool shape. The single-tool one embeds a ConfigRowItem,
+     * which does this for itself.
+     */
+    void refresh_dependency_state();
 
     void exclude_tool(size_t tool_index);
     void move_tool(size_t tool_index, size_t group_index);
@@ -139,6 +154,8 @@ private:
     std::vector<ToolRowOverridePtr> m_overrides;
 
     ConfigRowItem* m_config_row_item{nullptr};
+    ConfigRowDependency m_dependency;
+    Yoga::Text* m_reason{nullptr};
     bool m_small{false};
 };
 

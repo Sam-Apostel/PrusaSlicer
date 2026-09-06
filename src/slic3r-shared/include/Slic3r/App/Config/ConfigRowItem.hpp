@@ -6,6 +6,7 @@
 
 #include "Slic3r/App/Yoga/Item.hpp"
 #include "Slic3r/App/Yoga/Rectangle.hpp"
+#include "Slic3r/App/Config/ConfigRowDependency.hpp"
 #include "Slic3r/App/IConfigNavigable.hpp"
 
 namespace Slic3r::Biz {
@@ -54,15 +55,7 @@ public:
 private:
     void on_data_update() override;
 
-    /**
-     * @brief Re-evaluate the def's enable_if against the current config.
-     *
-     * Called every frame rather than driven by change notifications: the rule
-     * depends on *other* settings, so there is no update of this row to hang it
-     * off. Evaluation is a map lookup per visible row, and the item is only
-     * touched when the answer actually changes, so nothing is invalidated while
-     * the answer holds steady.
-     */
+    /// Re-evaluate the def's rules and apply the result. Called every frame.
     void refresh_dependency_state();
 
     void apply_enabled_state();
@@ -96,12 +89,11 @@ private:
     // override) or the def's own dependency rule. Kept apart so that neither can
     // silently re-enable what the other disabled.
     bool m_enabled_by_caller{true};
-    bool m_enabled_by_dependency{true};
+    ConfigRowDependency m_dependency;
 
     bool m_can_revert{false};
 
     /// Reason currently displayed, empty when every requirement holds.
-    std::string m_shown_reason;
     /// Built only for settings that actually declare requirements.
     Yoga::Text* m_reason{nullptr};
 };
