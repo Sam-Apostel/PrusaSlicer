@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Slic3r/Biz/ConfigBoxObservableList.hpp"
+#include "Slic3r/Biz/IConfigItemSource.hpp"
 #include <set>
 
 namespace Slic3r::Biz {
@@ -11,7 +12,7 @@ namespace Slic3r::Biz {
  * @warning All set_value has to go through this Interactor, otherwise
  * there is a high chance of introducing desync.
  */
-class ConfigBoxInteractor
+class ConfigBoxInteractor : public IConfigItemSource
 {
 public:
     class SetAccessor
@@ -42,7 +43,7 @@ public:
     const Domain::ConfigValue* find(const std::string& name) const;
 
     /// The setting itself, for a control that writes a setting it was not built from.
-    const Domain::ConfigItem* find_item(const std::string& name) const;
+    const Domain::ConfigItem* find_item(const std::string& name) const override;
 
     std::weak_ptr<ConfigBoxObservableList> config_box_list();
 

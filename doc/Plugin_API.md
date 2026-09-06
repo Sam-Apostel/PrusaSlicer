@@ -208,6 +208,13 @@ cannot render, spans two groups, or claims a setting another control already ren
 A rejected control costs that control and nothing else: the settings it named keep
 their ordinary rows, and the rest of the file still loads.
 
+In the print form a row is also where per-tool overrides are added and managed,
+and a control edits only the print level. So on a printer with several tools, a
+control naming a setting that can be overridden per tool is skipped, and that
+setting keeps its full row — otherwise replacing the row would take the
+overrides away with no way to get them back. On a single-tool printer no such
+setting exists and every control applies.
+
 Only register a `section_toggle` for a setting the whole group depends on. The group
 collapses while the switch is off, which is right when the rest of the group is inert
 and wrong the moment one of its settings still applies.

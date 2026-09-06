@@ -1,6 +1,5 @@
 #include "Slic3r/App/Config/ConfigFormElementRegistry.hpp"
 
-#include <algorithm>
 #include <utility>
 
 namespace Slic3r::App {
@@ -46,27 +45,6 @@ const ConfigFormElementRegistry::SectionToggle* ConfigFormElementRegistry::secti
             return &toggle;
     }
     return nullptr;
-}
-
-bool ConfigFormElementRegistry::is_claimed(
-    const Domain::ConfigItemDef::Category category,
-    const Domain::ConfigItemDef::OptionGroup option_group,
-    const std::string& key
-) const
-{
-    const SectionToggle* toggle = section_toggle_for(category, option_group);
-    if (toggle != nullptr && toggle->key == key)
-        return true;
-
-    return std::any_of(
-        m_entries.begin(),
-        m_entries.end(),
-        [&](const Entry& entry)
-        {
-            return entry.category == category && entry.option_group == option_group
-                && entry.claimed_keys.contains(key);
-        }
-    );
 }
 
 } // namespace Slic3r::App

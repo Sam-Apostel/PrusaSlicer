@@ -85,18 +85,6 @@ public:
         Domain::ConfigItemDef::OptionGroup option_group
     ) const;
 
-    /**
-     * @brief True when this setting is rendered elsewhere, so no row should.
-     *
-     * Covers both an element that has claimed it and a gate promoted to the
-     * group's heading.
-     */
-    bool is_claimed(
-        Domain::ConfigItemDef::Category category,
-        Domain::ConfigItemDef::OptionGroup option_group,
-        const std::string& key
-    ) const;
-
 private:
     ConfigFormElementRegistry() = default;
 

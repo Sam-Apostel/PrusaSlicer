@@ -54,6 +54,16 @@ public:
 
     const Domain::ConfigValue* find_print_value(const std::string& name) const;
 
+    /**
+     * @brief The print-level setting itself, not just its value.
+     *
+     * Writing a setting goes through IConfigBoxSetter, which takes the item, so
+     * a control that writes a setting it was not built from needs this.
+     *
+     * @return nullptr when no such setting is in this box.
+     */
+    const Domain::ConfigItem* find_print_item(const std::string& name) const;
+
     const Domain::ConfigValue* find_tool_value(const std::string& name, size_t index) const;
 
     void on_bed_instance_extruder_candidates_changed(

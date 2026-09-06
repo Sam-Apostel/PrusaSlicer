@@ -1,6 +1,6 @@
 #include "Slic3r/App/Config/ConfigFormElement.hpp"
 
-#include "Slic3r/Biz/ConfigBoxInteractor.hpp"
+#include "Slic3r/Biz/IConfigItemSource.hpp"
 #include "Slic3r/Biz/IConfigBoxSetter.hpp"
 #include "Slic3r/Domain/ConfigItemPredicate.hpp"
 
@@ -10,7 +10,7 @@ ConfigFormElement::ConfigFormElement(const ConfigFormContext& context) : m_conte
 
 const Domain::ConfigItem* ConfigFormElement::config_item(const std::string& key) const
 {
-    return m_context.cbi == nullptr ? nullptr : m_context.cbi->find_item(key);
+    return m_context.items == nullptr ? nullptr : m_context.items->find_item(key);
 }
 
 bool ConfigFormElement::flag_of(const std::string& key, bool fallback) const
