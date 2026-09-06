@@ -1282,6 +1282,13 @@ set(SLIC3R_SHARED_FILES
         src/Slic3r/App/Lua/PluginCliOpsLicenses.cpp
         include/Slic3r/App/Lua/AuthorRegistry.hpp
         src/Slic3r/App/Lua/AuthorRegistry.cpp
+        include/Slic3r/App/Lua/PackageRegistry.hpp
+        src/Slic3r/App/Lua/PackageRegistry.cpp
+        include/Slic3r/App/Lua/ISlicingPluginReportListener.hpp
+        include/Slic3r/App/Lua/SlicingApi.hpp
+        src/Slic3r/App/Lua/SlicingApi.cpp
+        include/Slic3r/App/Lua/SlicingPluginRunner.hpp
+        src/Slic3r/App/Lua/SlicingPluginRunner.cpp
         include/Slic3r/App/Lua/IPluginInstallationListener.hpp
     
         src/Slic3r/App/Console/ConsoleInput.hpp

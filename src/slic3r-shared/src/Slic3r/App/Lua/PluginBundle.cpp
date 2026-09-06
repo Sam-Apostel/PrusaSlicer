@@ -23,7 +23,8 @@ using Result = tl::expected<T, std::string>;
 namespace {
 const std::map<PluginApiType, std::string> PLUGIN_API_TYPE_NAMES = {
     {PluginApiType::Project, "project.plugin"},
-    {PluginApiType::Form, "form.plugin"}
+    {PluginApiType::Form, "form.plugin"},
+    {PluginApiType::Slicing, "slicing.plugin"}
 };
 }
 

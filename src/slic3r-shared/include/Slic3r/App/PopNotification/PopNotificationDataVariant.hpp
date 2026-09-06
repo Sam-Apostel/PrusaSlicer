@@ -72,6 +72,13 @@ enum class ArrangeEventType {
 
 struct UserAccountLoginNotificationData {};
 
+/// Which plugin spoke, so its next report replaces this one rather than
+/// stacking a fresh notification on every slice.
+struct PluginReportNotificationData
+{
+    std::string plugin_id;
+};
+
 // Define the variant type alias.
 using PopNotificationPayload = std::variant<
     std::monostate,
@@ -83,7 +90,8 @@ using PopNotificationPayload = std::variant<
     EjectNotificationData,
     DownloadProgressNotificationData,
     ArrangeEventType,
-    UserAccountLoginNotificationData
+    UserAccountLoginNotificationData,
+    PluginReportNotificationData
 >;
 
 } // namespace Slic3r::App::PopNotification

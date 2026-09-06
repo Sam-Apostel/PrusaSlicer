@@ -1444,4 +1444,31 @@ void PopNotificationCenter::on_plugin_installation_succeeded(
 
 }
 
+void PopNotificationCenter::on_slicing_plugin_report(
+    const std::string& plugin_id,
+    const std::string& title,
+    const std::string& text
+)
+{
+    // Matched on the plugin, so the report from this slice replaces the one
+    // from the last. Slicing runs again on every edit, and a plugin that
+    // reports each time would otherwise bury the screen in its own history.
+    const auto same_plugin = cmp<PluginReportNotificationData>(
+        [](const PluginReportNotificationData& a, const PluginReportNotificationData& b)
+        { return a.plugin_id == b.plugin_id; }
+    );
+
+    PopNotificationData data{
+        PopNotificationType::PluginReport,
+        PopNotificationLevel::Regular,
+        10s,
+        PopNotificationLayoutText{text},
+        PluginReportNotificationData{plugin_id}
+    };
+    if (!title.empty()) {
+        data.layout = PopNotificationLayoutHeaderText{title, text};
+    }
+    upsert_notification(std::move(data), same_plugin);
+}
+
 } // namespace Slic3r::App::PopNotification

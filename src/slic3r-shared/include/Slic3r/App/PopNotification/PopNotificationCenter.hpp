@@ -14,6 +14,7 @@
 #include "Slic3r/App/Platform/IFileExplorerErrorListener.hpp"
 #include "Slic3r/App/LeftBarTabs.hpp"
 #include "Slic3r/App/Lua/IPluginInstallationListener.hpp"
+#include "Slic3r/App/Lua/ISlicingPluginReportListener.hpp"
 
 namespace Slic3r::Biz {
 class ProjectInteractor;
@@ -32,7 +33,8 @@ class PopNotificationCenter :
     public Biz::IArrangeEventsListener,
     public Biz::Connect::IConnectHandlerListener,
     public Platform::IFileExplorerErrorListener,
-    public Lua::IPluginInstallationListener
+    public Lua::IPluginInstallationListener,
+    public Lua::ISlicingPluginReportListener
 {
 public:
     PopNotificationCenter(Biz::ProjectInteractor& project_interactor);
@@ -107,6 +109,13 @@ public:
     // Plugin Error Listener
     void on_plugin_installation_error(const std::string& error_message) override;
     void on_plugin_installation_succeeded(const Lua::PluginBundleMeta& plugin_bundle_meta) override;
+
+    // Slicing plugin report
+    void on_slicing_plugin_report(
+        const std::string& plugin_id,
+        const std::string& title,
+        const std::string& text
+    ) override;
 private:
     void on_job_progress(
         const JobNotificationSpec& spec,

@@ -2271,10 +2271,11 @@ void MenuCommandRegistrar::register_main_menu_plugin_commands(Lua::PluginSystem&
 {
     bool any_plugin = false;
     for (auto& plugin : plugin_system.plugins() | std::views::values) {
-        // A form plugin declares controls; there is nothing to invoke, and a
-        // menu entry that runs it would only produce an error about the
-        // execute() it was never supposed to have.
-        if (plugin.meta().type == Lua::PluginType::FormPlugin)
+        // Only a project plugin is something to invoke. A form plugin declares
+        // controls and a slicing plugin waits to be told about a slice; a menu
+        // entry for either would only produce an error about the execute() it
+        // was never supposed to have.
+        if (plugin.meta().type != Lua::PluginType::ProjectPlugin)
             continue;
         any_plugin = true;
         std::vector<UniversalMenuItemName> path;
