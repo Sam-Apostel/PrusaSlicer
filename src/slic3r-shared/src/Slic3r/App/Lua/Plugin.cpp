@@ -117,7 +117,7 @@ std::string to_string(PluginType type)
 
 tl::expected<SlicingEvent, std::string> parse_slicing_event(std::string_view s)
 {
-    auto r = SLICING_EVENT_NAMES | std::views::values;
+    auto r        = SLICING_EVENT_NAMES | std::views::values;
     const auto it = std::ranges::find(r, s);
     if (it == r.end()) {
         return tl::unexpected{fmt::format("Unknown slicing event: {}", s)};
@@ -136,7 +136,6 @@ std::string handler_name(SlicingEvent event)
 {
     return "on_" + to_string(event);
 }
-
 
 bool is_path_in_sandbox(
     const boost::filesystem::path& sandbox_path,
@@ -330,7 +329,9 @@ void Plugin::execute(Biz::Lua::LuaEngine& lua, const PluginParamValueMap& params
         // Neither is offered anywhere -- they get no menu entry -- so reaching
         // here means a caller is treating a declaration as a program.
         SPDLOG_ERROR(
-            "Plugin {} is a {} and has nothing to execute", m_meta.id, to_string(m_meta.type)
+            "Plugin {} is a {} and has nothing to execute",
+            m_meta.id,
+            to_string(m_meta.type)
         );
         return;
     }
@@ -401,5 +402,4 @@ Plugin::deliver(Biz::Lua::LuaEngine& lua, const SlicingEvent event, const sol::t
     }
     return {};
 }
-
 }

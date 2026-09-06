@@ -91,7 +91,6 @@ using PopNotificationPayload = std::variant<
     DownloadProgressNotificationData,
     ArrangeEventType,
     UserAccountLoginNotificationData,
-    PluginReportNotificationData
->;
+    PluginReportNotificationData>;
 
 } // namespace Slic3r::App::PopNotification

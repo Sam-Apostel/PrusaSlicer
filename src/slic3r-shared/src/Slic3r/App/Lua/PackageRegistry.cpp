@@ -21,7 +21,7 @@ sol::object PackageRegistry::safe_require(sol::this_state ts, const std::string&
 
     // Check the secure cache in the Lua Registry
     // The registry is inaccessible from regular Lua scripts.
-    sol::table registry = lua.registry();
+    sol::table registry     = lua.registry();
     sol::table secure_cache = registry["_SECURE_REQUIRE_CACHE"].get_or_create<sol::table>();
 
     if (secure_cache[module_name].valid()) {
@@ -56,7 +56,10 @@ sol::object PackageRegistry::safe_require(sol::this_state ts, const std::string&
     if (!loaded_chunk.valid()) {
         sol::error err = loaded_chunk;
         luaL_error(
-            lua.lua_state(), "Syntax Error in module '%s': %s", module_name.c_str(), err.what()
+            lua.lua_state(),
+            "Syntax Error in module '%s': %s",
+            module_name.c_str(),
+            err.what()
         );
         return sol::lua_nil;
     }
@@ -66,7 +69,10 @@ sol::object PackageRegistry::safe_require(sol::this_state ts, const std::string&
     if (!result.valid()) {
         sol::error err = result;
         luaL_error(
-            lua.lua_state(), "Runtime Error in module '%s': %s", module_name.c_str(), err.what()
+            lua.lua_state(),
+            "Runtime Error in module '%s': %s",
+            module_name.c_str(),
+            err.what()
         );
         return sol::lua_nil;
     }

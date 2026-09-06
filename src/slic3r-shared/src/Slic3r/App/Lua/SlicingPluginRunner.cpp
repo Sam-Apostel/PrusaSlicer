@@ -22,10 +22,7 @@ SlicingPluginRunner::SlicingPluginRunner(
     m_report(std::move(report))
 {}
 
-void SlicingPluginRunner::on_status_changed(
-    const Biz::Slicing::StatusUpdate status,
-    const Domain::SlicingId id
-)
+void SlicingPluginRunner::on_status_changed(Biz::Slicing::StatusUpdate status, Domain::SlicingId id)
 {
     // Only a completed slice. A cancelled one ends in Modified, a failed one
     // in InvalidData, and one stopped at a step stays Modified -- none of them
@@ -96,8 +93,9 @@ void SlicingPluginRunner::deliver_sliced(const Domain::SlicingId id)
         PackageRegistry package_registry;
         Biz::Lua::LuaEngine lua;
         lua.open_registry([&api](auto& engine) { api.register_api(engine); });
-        lua.open_registry([&package_registry](auto& engine)
-                          { package_registry.register_api(engine); });
+        lua.open_registry(
+            [&package_registry](auto& engine) { package_registry.register_api(engine); }
+        );
 
         const std::optional<sol::table> slice =
             build_slice_view(lua.state(), id, result->get(), warnings);

@@ -116,6 +116,7 @@ public:
         const std::string& title,
         const std::string& text
     ) override;
+
 private:
     void on_job_progress(
         const JobNotificationSpec& spec,

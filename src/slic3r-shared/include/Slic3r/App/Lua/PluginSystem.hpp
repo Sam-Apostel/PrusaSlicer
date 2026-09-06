@@ -18,10 +18,11 @@ namespace Slic3r::App::Lua {
 
 class PluginDialog;
 
-class PluginSystem : public WithListeners<
-                         IPluginRescanListener,
-                         IPluginInstallationListener,
-                         ISlicingPluginReportListener>
+class PluginSystem :
+    public WithListeners<
+        IPluginRescanListener,
+        IPluginInstallationListener,
+        ISlicingPluginReportListener>
 {
 public:
     explicit PluginSystem(

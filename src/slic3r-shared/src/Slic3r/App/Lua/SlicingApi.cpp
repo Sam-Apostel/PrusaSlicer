@@ -43,7 +43,7 @@ double at_or_zero(const std::vector<float>& values, const size_t index)
 
 sol::table time_table(sol::state& state, const Domain::TimeStatistics& time)
 {
-    sol::table t = state.create_table();
+    sol::table t     = state.create_table();
     t["total"]       = static_cast<double>(time.time);
     t["first_layer"] = static_cast<double>(time.first_layer_time);
     return t;
@@ -51,7 +51,7 @@ sol::table time_table(sol::state& state, const Domain::TimeStatistics& time)
 
 sol::table filament_table(sol::state& state, const Domain::FullPrintStatistics& stats)
 {
-    sol::table filament = state.create_table();
+    sol::table filament    = state.create_table();
     filament["total_mm"]   = static_cast<double>(stats.total_used_filament_mm);
     filament["total_cm3"]  = static_cast<double>(stats.total_used_filament_cm3);
     filament["total_g"]    = static_cast<double>(stats.total_used_filament_g);
@@ -70,11 +70,11 @@ sol::table filament_table(sol::state& state, const Domain::FullPrintStatistics& 
     );
     sol::table per_extruder = state.create_table(static_cast<int>(extruders), 0);
     for (size_t i = 0; i < extruders; ++i) {
-        sol::table one = state.create_table();
-        one["mm"]   = at_or_zero(stats.used_filament_per_extruder_mm, i);
-        one["cm3"]  = at_or_zero(stats.used_filament_per_extruder_cm3, i);
-        one["g"]    = at_or_zero(stats.used_filament_per_extruder_g, i);
-        one["cost"] = at_or_zero(stats.filament_cost_per_extruder, i);
+        sol::table one      = state.create_table();
+        one["mm"]           = at_or_zero(stats.used_filament_per_extruder_mm, i);
+        one["cm3"]          = at_or_zero(stats.used_filament_per_extruder_cm3, i);
+        one["g"]            = at_or_zero(stats.used_filament_per_extruder_g, i);
+        one["cost"]         = at_or_zero(stats.filament_cost_per_extruder, i);
         per_extruder[i + 1] = one;
     }
     filament["per_extruder"] = per_extruder;
@@ -83,18 +83,18 @@ sol::table filament_table(sol::state& state, const Domain::FullPrintStatistics& 
     // the model -- an array would make position mean nothing.
     sol::table per_role = state.create_table();
     for (const auto& [role, used] : stats.used_filaments_per_role) {
-        sol::table one = state.create_table();
-        one["mm"] = static_cast<double>(used.first);
-        one["g"]  = static_cast<double>(used.second);
+        sol::table one                                  = state.create_table();
+        one["mm"]                                       = static_cast<double>(used.first);
+        one["g"]                                        = static_cast<double>(used.second);
         per_role[std::string{extrusion_role_key(role)}] = one;
     }
     filament["per_role"] = per_role;
 
-    sol::table wipe_tower = state.create_table();
-    wipe_tower["mm"]   = static_cast<double>(stats.total_used_filament_for_wipe_tower_mm);
-    wipe_tower["cm3"]  = static_cast<double>(stats.total_used_filament_for_wipe_tower_cm3);
-    wipe_tower["g"]    = static_cast<double>(stats.total_used_filament_for_wipe_tower_g);
-    wipe_tower["cost"] = static_cast<double>(stats.total_wipe_tower_cost);
+    sol::table wipe_tower  = state.create_table();
+    wipe_tower["mm"]       = static_cast<double>(stats.total_used_filament_for_wipe_tower_mm);
+    wipe_tower["cm3"]      = static_cast<double>(stats.total_used_filament_for_wipe_tower_cm3);
+    wipe_tower["g"]        = static_cast<double>(stats.total_used_filament_for_wipe_tower_g);
+    wipe_tower["cost"]     = static_cast<double>(stats.total_wipe_tower_cost);
     filament["wipe_tower"] = wipe_tower;
 
     return filament;
@@ -105,22 +105,38 @@ sol::table filament_table(sol::state& state, const Domain::FullPrintStatistics& 
 std::string_view extrusion_role_key(const Domain::GCodeExtrusionRole role)
 {
     switch (role) {
-    case Domain::GCodeExtrusionRole::None:                     return "none";
-    case Domain::GCodeExtrusionRole::Perimeter:                return "perimeter";
-    case Domain::GCodeExtrusionRole::ExternalPerimeter:        return "external_perimeter";
-    case Domain::GCodeExtrusionRole::OverhangPerimeter:        return "overhang_perimeter";
-    case Domain::GCodeExtrusionRole::InternalInfill:           return "internal_infill";
-    case Domain::GCodeExtrusionRole::SolidInfill:              return "solid_infill";
-    case Domain::GCodeExtrusionRole::TopSolidInfill:           return "top_solid_infill";
-    case Domain::GCodeExtrusionRole::Ironing:                  return "ironing";
-    case Domain::GCodeExtrusionRole::BridgeInfill:             return "bridge_infill";
-    case Domain::GCodeExtrusionRole::GapFill:                  return "gap_fill";
-    case Domain::GCodeExtrusionRole::Skirt:                    return "skirt_brim";
-    case Domain::GCodeExtrusionRole::SupportMaterial:          return "support_material";
-    case Domain::GCodeExtrusionRole::SupportMaterialInterface: return "support_material_interface";
-    case Domain::GCodeExtrusionRole::WipeTower:                return "wipe_tower";
-    case Domain::GCodeExtrusionRole::Custom:                   return "custom";
-    case Domain::GCodeExtrusionRole::Count:                    break;
+    case Domain::GCodeExtrusionRole::None:
+        return "none";
+    case Domain::GCodeExtrusionRole::Perimeter:
+        return "perimeter";
+    case Domain::GCodeExtrusionRole::ExternalPerimeter:
+        return "external_perimeter";
+    case Domain::GCodeExtrusionRole::OverhangPerimeter:
+        return "overhang_perimeter";
+    case Domain::GCodeExtrusionRole::InternalInfill:
+        return "internal_infill";
+    case Domain::GCodeExtrusionRole::SolidInfill:
+        return "solid_infill";
+    case Domain::GCodeExtrusionRole::TopSolidInfill:
+        return "top_solid_infill";
+    case Domain::GCodeExtrusionRole::Ironing:
+        return "ironing";
+    case Domain::GCodeExtrusionRole::BridgeInfill:
+        return "bridge_infill";
+    case Domain::GCodeExtrusionRole::GapFill:
+        return "gap_fill";
+    case Domain::GCodeExtrusionRole::Skirt:
+        return "skirt_brim";
+    case Domain::GCodeExtrusionRole::SupportMaterial:
+        return "support_material";
+    case Domain::GCodeExtrusionRole::SupportMaterialInterface:
+        return "support_material_interface";
+    case Domain::GCodeExtrusionRole::WipeTower:
+        return "wipe_tower";
+    case Domain::GCodeExtrusionRole::Custom:
+        return "custom";
+    case Domain::GCodeExtrusionRole::Count:
+        break;
     }
     return "unknown";
 }
@@ -128,24 +144,34 @@ std::string_view extrusion_role_key(const Domain::GCodeExtrusionRole role)
 std::string_view warning_code_key(const Biz::Slicing::WarningCode code)
 {
     switch (code) {
-    case Biz::Slicing::WarningCode::None: return "none";
-    case Biz::Slicing::WarningCode::BedTempsDiffer: return "bed_temps_differ";
-    case Biz::Slicing::WarningCode::BedTempsChanged: return "bed_temps_changed";
-    case Biz::Slicing::WarningCode::FilamentShrinkageDiffer: return "filament_shrinkage_differ";
+    case Biz::Slicing::WarningCode::None:
+        return "none";
+    case Biz::Slicing::WarningCode::BedTempsDiffer:
+        return "bed_temps_differ";
+    case Biz::Slicing::WarningCode::BedTempsChanged:
+        return "bed_temps_changed";
+    case Biz::Slicing::WarningCode::FilamentShrinkageDiffer:
+        return "filament_shrinkage_differ";
     case Biz::Slicing::WarningCode::WipeTowerNozzleDiameterDiffer:
         return "wipe_tower_nozzle_diameter_differ";
     case Biz::Slicing::WarningCode::SupportNozzleDiameterDiffer:
         return "support_nozzle_diameter_differ";
-    case Biz::Slicing::WarningCode::SupportsTurnedOff: return "supports_turned_off";
-    case Biz::Slicing::WarningCode::StabilityIssues: return "stability_issues";
-    case Biz::Slicing::WarningCode::EmptyLayers: return "empty_layers";
+    case Biz::Slicing::WarningCode::SupportsTurnedOff:
+        return "supports_turned_off";
+    case Biz::Slicing::WarningCode::StabilityIssues:
+        return "stability_issues";
+    case Biz::Slicing::WarningCode::EmptyLayers:
+        return "empty_layers";
     case Biz::Slicing::WarningCode::CustomGCodeReservedKeywords:
         return "custom_gcode_reserved_keywords";
-    case Biz::Slicing::WarningCode::InvalidToolchange: return "invalid_toolchange";
-    case Biz::Slicing::WarningCode::CloseToPrimingRegions: return "close_to_priming_regions";
+    case Biz::Slicing::WarningCode::InvalidToolchange:
+        return "invalid_toolchange";
+    case Biz::Slicing::WarningCode::CloseToPrimingRegions:
+        return "close_to_priming_regions";
     case Biz::Slicing::WarningCode::ToolpathOutsideBuildVolume:
         return "toolpath_outside_build_volume";
-    case Biz::Slicing::WarningCode::GCodeConflict: return "gcode_conflict";
+    case Biz::Slicing::WarningCode::GCodeConflict:
+        return "gcode_conflict";
     case Biz::Slicing::WarningCode::XYSizeCompensationIgnoredMultiMaterialPainting:
         return "xy_size_compensation_ignored_multi_material_painting";
     case Biz::Slicing::WarningCode::XYSizeCompensationIgnoredFuzzySkinPainting:
@@ -157,8 +183,10 @@ std::string_view warning_code_key(const Biz::Slicing::WarningCode code)
 std::string_view warning_severity_key(const Biz::Slicing::WarningSeverity severity)
 {
     switch (severity) {
-    case Biz::Slicing::WarningSeverity::LOW: return "low";
-    case Biz::Slicing::WarningSeverity::HIGH: return "high";
+    case Biz::Slicing::WarningSeverity::LOW:
+        return "low";
+    case Biz::Slicing::WarningSeverity::HIGH:
+        return "high";
     }
     return "unknown";
 }
@@ -180,7 +208,7 @@ std::optional<sol::table> build_slice_view(
         return std::nullopt;
     }
 
-    sol::table slice = state.create_table();
+    sol::table slice     = state.create_table();
     slice["bed"]         = static_cast<double>(id.bed_instance_id);
     slice["extruders"]   = static_cast<double>(result.extruders_count);
     slice["spiral_vase"] = result.spiral_vase_enabled;
@@ -188,32 +216,32 @@ std::optional<sol::table> build_slice_view(
     slice["toolchanges"] = static_cast<double>(stats->total_toolchanges);
 
     sol::table time = state.create_table();
-    time["normal"] = time_table(state, stats->normal_mode_time);
+    time["normal"]  = time_table(state, stats->normal_mode_time);
     if (stats->silent_mode_time.has_value())
         time["silent"] = time_table(state, *stats->silent_mode_time);
     slice["time"] = time;
 
     slice["filament"] = filament_table(state, *stats);
 
-    sol::table filaments = state.create_table();
-    filaments["initial"]  = stats->initial_filament_type;
-    filaments["printing"] = strings(state, stats->printing_filament_types);
+    sol::table filaments    = state.create_table();
+    filaments["initial"]    = stats->initial_filament_type;
+    filaments["printing"]   = strings(state, stats->printing_filament_types);
     slice["filament_types"] = filaments;
 
     // Extruder ids as the config numbers them, unshifted, so they can be
     // compared against a setting. The per-extruder arrays above are the ones
     // that are one-based; mixing the two conventions in one table would be a
     // trap, so they are kept under names that say which is which.
-    slice["extruder_ids"] = numbers(state, stats->printing_extruders);
+    slice["extruder_ids"]        = numbers(state, stats->printing_extruders);
     slice["initial_extruder_id"] = static_cast<double>(stats->initial_extruder_id);
 
     sol::table warning_list = state.create_table(static_cast<int>(warnings.size()), 0);
     for (size_t i = 0; i < warnings.size(); ++i) {
         const Biz::Slicing::Warning& warning = warnings.at(i);
-        sol::table one = state.create_table();
-        one["code"]     = std::string{warning_code_key(warning.code)};
-        one["severity"] = std::string{warning_severity_key(warning.severity)};
-        warning_list[i + 1] = one;
+        sol::table one                       = state.create_table();
+        one["code"]                          = std::string{warning_code_key(warning.code)};
+        one["severity"]                      = std::string{warning_severity_key(warning.severity)};
+        warning_list[i + 1]                  = one;
     }
     slice["warnings"] = warning_list;
 
@@ -241,7 +269,7 @@ void SlicingApi::register_api(Biz::Lua::LuaEngine& lua)
             if (!line.empty())
                 line += '\t';
             const sol::object value = arg;
-            const std::string text = to_string(value);
+            const std::string text  = to_string(value);
             line += text;
         }
         SPDLOG_INFO("Plugin {}: {}", id, line);
