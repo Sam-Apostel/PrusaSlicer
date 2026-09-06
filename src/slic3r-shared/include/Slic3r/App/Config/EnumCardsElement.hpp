@@ -5,6 +5,7 @@
 
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,9 @@ public:
 
     void refresh_from_config() override;
 
+    /// Grey the cards whose values the config rules out. See value_enable_if.
+    void refresh_available_values();
+
     void render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size) override;
 
 private:
@@ -60,6 +64,7 @@ private:
     std::vector<std::pair<int, Yoga::AbstractButton*>> m_cards;
 
     std::optional<int> m_shown_value;
+    std::set<int> m_shown_unavailable;
     bool m_applying_from_config{false};
 };
 

@@ -7,7 +7,10 @@
 #include "Slic3r/App/Config/OverridableConfigRowItems.hpp"
 #include "Slic3r/App/Yoga/ListView.hpp"
 #include "Slic3r/App/Yoga/Rectangle.hpp"
+#include "Slic3r/App/Config/ConfigFormSection.hpp"
 #include "Slic3r/App/IConfigNavigable.hpp"
+
+#include <optional>
 
 namespace Slic3r::App::Yoga {
 class Text;
@@ -46,7 +49,18 @@ public:
     void navigate_to_item(const Domain::ConfigItem* config_item) override;
     void clear_navigation() override;
 
+    void render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size) override;
+
 private:
+    /// Build the custom controls registered for this group, if any.
+    void rebuild_form_elements();
+
+    /// Show or hide the group's body according to its heading switch.
+    void apply_section_visibility();
+
+    /// Hide the rows whose settings are not visible, and the group when empty.
+    void apply_row_visibility();
+
     void on_data_update() override;
 
     void on_index_update() override;
@@ -58,7 +72,14 @@ private:
 
     ConfigRowListView* m_rows_list_view{nullptr};
     Biz::UnsharedPointer<Biz::ObservableListSortFilter<Biz::OverrideItem>> m_rows_filter_list;
+    Yoga::Item* m_heading{nullptr};
     Yoga::Text* m_label{nullptr};
+    Yoga::Item* m_form_elements{nullptr};
+    std::optional<ConfigFormSection> m_section;
+    /// The setting search is pointing at, shown whatever its visibility rule says.
+    std::string m_navigating_to;
+    /// This group's own padding, restored when it has something to show again.
+    Yoga::Paddings m_padding;
     Domain::ConfigItemDef::OptionGroup m_option_group{Domain::ConfigItemDef::OptionGroup::Unknown};
     Domain::ConfigItemDef::Category m_category{Domain::ConfigItemDef::Category::Unknown};
 };

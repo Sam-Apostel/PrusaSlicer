@@ -1,5 +1,7 @@
 #include "Slic3r/Domain/ConfigItemPredicate.hpp"
 
+#include "Slic3r/Domain/ConfigDef.hpp"
+
 #include "Slic3r/Domain/ConfigValue.hpp"
 
 #include <algorithm>
@@ -158,6 +160,16 @@ const ConfigItemRequirement* first_unmet(
             return &requirement;
     }
     return nullptr;
+}
+
+std::set<int> unavailable_enum_values(const ConfigItemDef& def, const ConfigItemLookup& lookup)
+{
+    std::set<int> unavailable;
+    for (const auto& [value, predicate] : def.value_enable_if) {
+        if (!evaluate(predicate, lookup))
+            unavailable.insert(value);
+    }
+    return unavailable;
 }
 
 } // namespace Slic3r::Domain

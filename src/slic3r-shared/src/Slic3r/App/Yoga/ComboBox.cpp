@@ -370,10 +370,12 @@ void ComboBox::render(const Vec2f& pos, const Vec2f& size)
             for (int index = 0; index < static_cast<int>(m_items.size()); ++index) {
                 ImGui::PushID(index);
                 ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.f, 0.5f));
+                const ImGuiSelectableFlags item_flags =
+                    m_disabled_items.contains(index) ? ImGuiSelectableFlags_Disabled : 0;
                 if (ImGui::Selectable(
                         m_items.at(index).c_str(),
                         m_override_label.empty() ? index == m_current_index : false,
-                        0,
+                        item_flags,
                         im_size
                     ))
                 {
@@ -422,6 +424,20 @@ void ComboBox::set_items(const std::vector<std::string>& items)
         m_items = items;
         set_current_index(0);
     }
+}
+
+const std::set<int>& ComboBox::disabled_items() const
+{
+    return m_disabled_items;
+}
+
+void ComboBox::set_disabled_items(const std::set<int>& disabled_items)
+{
+    // Deliberately does not touch the current index. A stored value that a rule
+    // now forbids stays selected and shown: the control's job is to report what
+    // the config holds, and silently choosing something else on the user's
+    // behalf would be a worse answer than showing them the problem.
+    m_disabled_items = disabled_items;
 }
 
 Vec2f ComboBox::get_item_size()

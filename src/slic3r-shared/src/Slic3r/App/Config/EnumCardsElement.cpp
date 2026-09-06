@@ -5,6 +5,8 @@
 #include "Slic3r/App/Yoga/Text.hpp"
 
 #include "Slic3r/Biz/I18N/I18N.hpp"
+#include "Slic3r/Biz/IConfigBoxSetter.hpp"
+#include "Slic3r/Domain/ConfigItemPredicate.hpp"
 
 #include <utility>
 
@@ -99,8 +101,31 @@ void EnumCardsElement::refresh_from_config()
     m_applying_from_config = false;
 }
 
+void EnumCardsElement::refresh_available_values()
+{
+    const Domain::ConfigItem* item = config_item(m_key);
+    if (item == nullptr || item->def().value_enable_if.empty())
+        return;
+    const Domain::ConfigItemLookup* lookup =
+        context().setter == nullptr ? nullptr : context().setter->item_lookup();
+    if (lookup == nullptr)
+        return;
+
+    std::set<int> unavailable = Domain::unavailable_enum_values(item->def(), *lookup);
+    if (unavailable == m_shown_unavailable)
+        return;
+    m_shown_unavailable = std::move(unavailable);
+
+    // A card whose value is ruled out greys but keeps its place, and keeps its
+    // tick if it is the stored value. Removing it would hide that the option
+    // exists; unticking it would be this control quietly changing the config.
+    for (const auto& [value, card] : m_cards)
+        card->set_enabled(!m_shown_unavailable.contains(value));
+}
+
 void EnumCardsElement::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size)
 {
+    refresh_available_values();
     // Re-read every frame: an undo, a preset switch or a write elsewhere does
     // not notify this element, and the check is a comparison unless it changed.
     refresh_element();

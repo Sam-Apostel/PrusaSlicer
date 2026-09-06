@@ -3,6 +3,7 @@
 #include "Slic3r/Biz/ConfigBoxInteractor.hpp"
 #include "Slic3r/Biz/I18N/I18N.hpp"
 
+#include "Slic3r/App/Config/ConfigRowVisibility.hpp"
 #include "Slic3r/App/Yoga/Text.hpp"
 #include "Slic3r/App/Imgui/ImguiExtension.hpp"
 
@@ -31,7 +32,8 @@ ConfigSubcategoryItem::ConfigSubcategoryItem(
     set_flags(ImDrawFlags_None);
     set_rounding(0);
     set_gap(0);
-    set_padding(Paddings(20.f, 20.f, 20.f, 0.f));
+    m_padding = Paddings(20.f, 20.f, 20.f, 0.f);
+    set_padding(m_padding);
 
     // The heading is a row rather than a bare label, because a group whose
     // settings all hang off one switch puts that switch here, beside the name
@@ -118,6 +120,7 @@ void ConfigSubcategoryItem::navigate_to_item(const Domain::ConfigItem* config_it
             // highlights a row nobody can see, and looks like a search that
             // found nothing.
             m_section->set_force_expanded(true);
+            m_navigating_to = name;
             apply_section_visibility();
             m_rows_list_view->item_at(row_index)->navigate_to_item(config_item);
             break;
@@ -128,6 +131,7 @@ void ConfigSubcategoryItem::navigate_to_item(const Domain::ConfigItem* config_it
 void ConfigSubcategoryItem::clear_navigation()
 {
     m_section->set_force_expanded(false);
+    m_navigating_to.clear();
     apply_section_visibility();
     for (size_t row_index = 0; row_index < m_rows_list_view->object_count(); ++row_index) {
         m_rows_list_view->item_at(row_index)->clear_navigation();
@@ -141,6 +145,25 @@ void ConfigSubcategoryItem::apply_section_visibility()
     m_rows_list_view->set_visible(expanded);
 }
 
+void ConfigSubcategoryItem::apply_row_visibility()
+{
+    const bool any_visible = apply_visibility_to_rows(
+        *m_rows_filter_list,
+        *m_rows_list_view,
+        m_cbi_container,
+        m_navigating_to
+    );
+
+    // A group with no visible row, no control of its own and no switch in its
+    // heading is not a group. Its heading goes, and its padding with it -- but
+    // the group item itself stays, because hiding it would stop its render and
+    // it could never find out that the rule had changed back.
+    const bool anything_to_show =
+        any_visible || m_form_elements->object_count() > 0 || m_section->has_toggle();
+    m_heading->set_visible(anything_to_show);
+    set_padding(anything_to_show ? m_padding : Yoga::Paddings(0.f));
+}
+
 void ConfigSubcategoryItem::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size)
 {
     // Every frame, like the rest of this UI. Nothing notifies us that the
@@ -149,6 +172,7 @@ void ConfigSubcategoryItem::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& si
     // so the group follows a frame behind. Two calls to set_visible with the
     // value they already have is not worth avoiding.
     apply_section_visibility();
+    apply_row_visibility();
     Rectangle::render(pos, size);
 }
 

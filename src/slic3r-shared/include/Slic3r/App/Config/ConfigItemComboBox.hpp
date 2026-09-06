@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+
 #include "Slic3r/App/Yoga/ComboBox.hpp"
 #include "Slic3r/App/Config/ConfigItemControl.hpp"
 #include "Slic3r/App/Yoga/Validator.hpp"
@@ -20,8 +22,18 @@ public:
         std::vector<size_t> cbi_index
     );
 
+    void render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size) override;
+
 protected:
     void on_data_update() override;
+
+    /**
+     * @brief Re-evaluate which of this enum's values the config rules out.
+     *
+     * Every frame, like the other rule evaluation: the answer depends on other
+     * settings, so nothing about this one changes when it does.
+     */
+    void refresh_disabled_values();
     void update_value(const Domain::ConfigValue& value);
     void initialize();
 
@@ -31,6 +43,7 @@ private:
 
     const Domain::ConfigItem* m_last_item{nullptr};
     bool m_init = false;
+    std::set<int> m_shown_unavailable;
 };
 
 } // namespace Slic3r::App

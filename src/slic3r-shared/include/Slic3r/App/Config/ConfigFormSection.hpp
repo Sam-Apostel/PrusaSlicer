@@ -80,6 +80,18 @@ public:
     bool expanded() const;
 
     /**
+     * @brief Whether this group's heading carries a switch.
+     *
+     * A group whose rows are all hidden still has something to show if the
+     * switch is there -- the switch is a setting too, and it is what turns the
+     * rest back on.
+     */
+    bool has_toggle() const
+    {
+        return m_toggle != nullptr;
+    }
+
+    /**
      * @brief Show the body whatever the switch says.
      *
      * For search: a setting the user went looking for has to be somewhere they

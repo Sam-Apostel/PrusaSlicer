@@ -67,6 +67,16 @@ private:
     /// Show or hide the group's body according to its heading switch.
     void apply_section_visibility();
 
+    /**
+     * @brief Hide the rows whose settings are not visible, and the group when
+     *        that leaves nothing.
+     *
+     * Done here rather than in the rows because a row that hid itself could
+     * never show itself again -- an invisible item's render does not run, and
+     * its render is the only place it would learn the rule now holds.
+     */
+    void apply_row_visibility();
+
 private:
     Biz::ConfigBoxInteractor& m_cbi;
     Biz::IConfigBoxSetter& m_cbi_container;
@@ -77,6 +87,10 @@ private:
     Yoga::Item* m_heading{nullptr};
     Yoga::Text* m_label{nullptr};
     Yoga::Item* m_form_elements{nullptr};
+    /// The setting search is pointing at, shown whatever its visibility rule says.
+    std::string m_navigating_to;
+    /// This group's own padding, restored when it has something to show again.
+    Yoga::Paddings m_padding;
     std::optional<ConfigFormSection> m_section;
     Domain::ConfigItemDef::OptionGroup m_option_group{Domain::ConfigItemDef::OptionGroup::Unknown};
     Domain::ConfigItemDef::Category m_category{Domain::ConfigItemDef::Category::Unknown};
