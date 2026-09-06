@@ -46,10 +46,16 @@ public:
      * that happens to match the new setting would be reported as no change and
      * never applied to them. Call this whenever the widgets are rebuilt.
      */
-    void invalidate() { m_valid = false; }
+    void invalidate()
+    {
+        m_valid = false;
+    }
 
     /// False when a rule or an unmet requirement says the setting has no effect.
-    bool applies() const { return m_applies; }
+    bool applies() const
+    {
+        return m_applies;
+    }
 
     /**
      * @brief Why the setting cannot apply, translated and ready to show.
@@ -58,7 +64,10 @@ public:
      * which states a dependency rather than explaining one. Only requirements
      * carry a reason, because only they were written to be read by the user.
      */
-    const std::string& reason() const { return m_reason; }
+    const std::string& reason() const
+    {
+        return m_reason;
+    }
 
 private:
     /// False until an answer has been applied to widgets that still exist.

@@ -7,10 +7,8 @@
 
 namespace Slic3r::App {
 
-bool ConfigRowDependency::refresh(
-    const Domain::ConfigItem& item,
-    const Biz::IConfigBoxSetter& setter
-)
+bool
+ConfigRowDependency::refresh(const Domain::ConfigItem& item, const Biz::IConfigBoxSetter& setter)
 {
     const Domain::ConfigItemLookup* lookup = setter.item_lookup();
     if (lookup == nullptr) {
@@ -19,7 +17,7 @@ bool ConfigRowDependency::refresh(
         return false;
     }
 
-    const Domain::ConfigItemDef& def = item.def();
+    const Domain::ConfigItemDef& def           = item.def();
     const Domain::ConfigItemRequirement* unmet = Domain::first_unmet(def.requirements, *lookup);
     const bool applies = unmet == nullptr && Domain::evaluate(def.enable_if, *lookup);
     std::string reason = unmet == nullptr ? std::string{} : Biz::_u8(unmet->reason);
