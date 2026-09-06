@@ -2,6 +2,7 @@
 
 #include "Slic3r/Biz/ConfigItemContext.hpp"
 #include "Slic3r/Biz/IConfigBoxSetter.hpp"
+#include "Slic3r/Biz/OverrideItem.hpp"
 #include "Slic3r/Biz/PrintToolItem.hpp"
 #include "Slic3r/Domain/Config.hpp"
 
@@ -33,6 +34,12 @@ inline const Domain::ConfigItem* config_item_of(const Biz::ConfigItemContext& ro
 inline const Domain::ConfigItem* config_item_of(const Biz::PrintToolItem& row)
 {
     return row.print_item;
+}
+
+/// The setting behind a row of the filament form, which also carries overrides.
+inline const Domain::ConfigItem* config_item_of(const Biz::OverrideItem& row)
+{
+    return row.config_item;
 }
 
 /**

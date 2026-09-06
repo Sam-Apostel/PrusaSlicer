@@ -70,4 +70,14 @@ OverridableConfigBoxInteractor::config_box_overridable_list()
     return m_config_box_list.get();
 }
 
+const Domain::ConfigItem* OverridableConfigBoxInteractor::find_item(const std::string& name) const
+{
+    return m_config_box_list->find_item(name);
+}
+
+bool OverridableConfigBoxInteractor::is_overridable(const std::string& name) const
+{
+    return m_config_box_list->is_overridable(name);
+}
+
 } // namespace Slic3r::Biz
