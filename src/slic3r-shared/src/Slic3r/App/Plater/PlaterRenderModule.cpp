@@ -1378,7 +1378,8 @@ void PlaterRenderModule::on_scene_selection_changed(
 
 void PlaterRenderModule::update_settings_panel_camera_shift()
 {
-    const std::optional<float> panel_left = m_layout ? m_layout->settings_panel_left() : std::nullopt;
+    const std::optional<float> panel_left =
+        m_layout ? m_layout->settings_panel_left() : std::nullopt;
 
     // Only the transitions matter. While the panel stays open the camera is the
     // user's again -- they may pan and zoom underneath it, and re-centring every

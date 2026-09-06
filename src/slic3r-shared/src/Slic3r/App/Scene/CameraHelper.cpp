@@ -35,7 +35,7 @@ bool point_on_target_plane(
 )
 {
     const Render::Rect& viewport = camera.viewport();
-    const Ray ray = camera.ray_at(viewport_x, viewport.y + viewport.height * 0.5);
+    const Ray ray                = camera.ray_at(viewport_x, viewport.y + viewport.height * 0.5);
 
     const Domain::Vec3d n = camera.forward();
     const Domain::Vec3d p = camera.position();
