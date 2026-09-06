@@ -7,8 +7,8 @@
 #include <string>
 
 namespace Slic3r::Biz {
-class ConfigBoxInteractor;
 class IConfigBoxSetter;
+class IConfigItemSource;
 } // namespace Slic3r::Biz
 
 namespace Slic3r::App {
@@ -17,7 +17,9 @@ namespace Slic3r::App {
 struct ConfigFormContext
 {
     Biz::IConfigBoxSetter* setter{nullptr};
-    Biz::ConfigBoxInteractor* cbi{nullptr};
+    /// Where the claimed settings are read from. Each settings dialog has its
+    /// own interactor, and this is the only part of one a control needs.
+    Biz::IConfigItemSource* items{nullptr};
     size_t cbi_index{0};
     /// Settings this element renders, so it can honour their own rules.
     std::set<std::string> claimed_keys;

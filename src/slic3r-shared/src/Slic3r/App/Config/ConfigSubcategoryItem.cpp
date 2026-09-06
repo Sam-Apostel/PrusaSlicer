@@ -3,8 +3,6 @@
 #include "Slic3r/Biz/ConfigBoxInteractor.hpp"
 #include "Slic3r/Biz/I18N/I18N.hpp"
 
-#include "Slic3r/App/Config/ConfigFormElementRegistry.hpp"
-#include "Slic3r/App/Config/SectionToggleElement.hpp"
 #include "Slic3r/App/Yoga/Text.hpp"
 #include "Slic3r/App/Imgui/ImguiExtension.hpp"
 
@@ -62,6 +60,8 @@ ConfigSubcategoryItem::ConfigSubcategoryItem(
     m_form_elements->set_gap(5);
     m_form_elements->set_padding(20);
 
+    m_section.emplace(*m_heading, *m_form_elements);
+
     m_rows_filter_list->set_filter_fn(
         [this](const Biz::ConfigItemContext& item) -> bool
         {
@@ -69,9 +69,7 @@ ConfigSubcategoryItem::ConfigSubcategoryItem(
             if (def.option_group != m_option_group || def.category != m_category)
                 return false;
             // A setting a custom control renders gets no row of its own.
-            return !ConfigFormElementRegistry::instance().is_claimed(
-                m_category, m_option_group, item.name
-            );
+            return !m_section->renders(item.name);
         }
     );
     // also group by row_group
@@ -119,7 +117,7 @@ void ConfigSubcategoryItem::navigate_to_item(const Domain::ConfigItem* config_it
             // Otherwise a search for a setting whose feature is switched off
             // highlights a row nobody can see, and looks like a search that
             // found nothing.
-            m_force_expanded = true;
+            m_section->set_force_expanded(true);
             apply_section_visibility();
             m_rows_list_view->item_at(row_index)->navigate_to_item(config_item);
             break;
@@ -129,7 +127,7 @@ void ConfigSubcategoryItem::navigate_to_item(const Domain::ConfigItem* config_it
 
 void ConfigSubcategoryItem::clear_navigation()
 {
-    m_force_expanded = false;
+    m_section->set_force_expanded(false);
     apply_section_visibility();
     for (size_t row_index = 0; row_index < m_rows_list_view->object_count(); ++row_index) {
         m_rows_list_view->item_at(row_index)->clear_navigation();
@@ -138,8 +136,7 @@ void ConfigSubcategoryItem::clear_navigation()
 
 void ConfigSubcategoryItem::apply_section_visibility()
 {
-    const bool expanded =
-        m_section_toggle == nullptr || m_force_expanded || m_section_toggle->is_on();
+    const bool expanded = m_section->expanded();
     m_form_elements->set_visible(expanded);
     m_rows_list_view->set_visible(expanded);
 }
@@ -177,43 +174,11 @@ void ConfigSubcategoryItem::on_data_update()
 
 void ConfigSubcategoryItem::rebuild_form_elements()
 {
-    while (m_form_elements->object_count() > 0)
-        m_form_elements->remove(m_form_elements->get_item(0));
-
-    if (m_section_toggle != nullptr) {
-        m_heading->remove(m_section_toggle);
-        m_section_toggle = nullptr;
-    }
-    m_force_expanded = false;
-
-    if (const ConfigFormElementRegistry::SectionToggle* toggle =
-            ConfigFormElementRegistry::instance().section_toggle_for(m_category, m_option_group))
-    {
-        auto* element = m_heading->emplace_back<SectionToggleElement>(
-            ConfigFormContext{&m_cbi_container, &m_cbi, m_cbi_index, {toggle->key}},
-            toggle->key
-        );
-        // A printer technology that does not define the gate gets its group
-        // back unchanged rather than an empty switch and a group that can
-        // never be opened.
-        if (element->valid())
-            m_section_toggle = element;
-        else
-            m_heading->remove(element);
-    }
-
-    for (const ConfigFormElementRegistry::Entry* entry :
-         ConfigFormElementRegistry::instance().elements_for(m_category, m_option_group))
-    {
-        // The element is told which settings it stands in for, so it can honour
-        // their enable_if and requirements. Those settings get no default row,
-        // so nothing else is left to enforce them.
-        const ConfigFormContext context{
-            &m_cbi_container, &m_cbi, m_cbi_index, entry->claimed_keys
-        };
-        if (std::unique_ptr<ConfigFormElement> element = entry->factory(context))
-            m_form_elements->append(std::move(element));
-    }
+    m_section->rebuild(
+        m_category,
+        m_option_group,
+        ConfigFormContext{&m_cbi_container, &m_cbi, m_cbi_index, {}}
+    );
 }
 
 void ConfigSubcategoryItem::on_index_update()

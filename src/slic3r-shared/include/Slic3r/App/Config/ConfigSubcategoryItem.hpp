@@ -4,10 +4,13 @@
 #include "Slic3r/Biz/DataObserver.hpp"
 #include <Slic3r/Biz/ConfigItemContext.hpp>
 
+#include "Slic3r/App/Config/ConfigFormSection.hpp"
 #include "Slic3r/App/Config/ConfigRowItems.hpp"
 #include "Slic3r/App/Yoga/ListView.hpp"
 #include "Slic3r/App/Yoga/Rectangle.hpp"
 #include "Slic3r/App/IConfigNavigable.hpp"
+
+#include <optional>
 
 namespace Slic3r::App::Yoga {
 class Text;
@@ -19,8 +22,6 @@ class IConfigBoxSetter;
 } // namespace Slic3r::Biz
 
 namespace Slic3r::App {
-
-class SectionToggleElement;
 
 class ConfigSubcategoryItem :
     public Biz::DataObserver<Biz::ConfigItemContext>,
@@ -63,14 +64,7 @@ private:
      */
     void rebuild_form_elements();
 
-    /**
-     * @brief Show or hide the group's body according to its heading switch.
-     *
-     * A group whose switch is off is a heading and nothing else: everything
-     * below it is disabled, and a list of greyed rows says less than their
-     * absence does. Search overrides this -- a setting the user went looking
-     * for has to be somewhere they can see it, however its group is set.
-     */
+    /// Show or hide the group's body according to its heading switch.
     void apply_section_visibility();
 
 private:
@@ -82,10 +76,8 @@ private:
     Biz::UnsharedPointer<Biz::ObservableListSortFilter<Biz::ConfigItemContext>> m_rows_filter_list;
     Yoga::Item* m_heading{nullptr};
     Yoga::Text* m_label{nullptr};
-    SectionToggleElement* m_section_toggle{nullptr};
     Yoga::Item* m_form_elements{nullptr};
-    /// Set while a search result inside this group is being pointed at.
-    bool m_force_expanded{false};
+    std::optional<ConfigFormSection> m_section;
     Domain::ConfigItemDef::OptionGroup m_option_group{Domain::ConfigItemDef::OptionGroup::Unknown};
     Domain::ConfigItemDef::Category m_category{Domain::ConfigItemDef::Category::Unknown};
 };

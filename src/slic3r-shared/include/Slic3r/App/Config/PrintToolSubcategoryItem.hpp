@@ -6,10 +6,13 @@
 #include "Slic3r/Biz/DataObserver.hpp"
 #include "Slic3r/Biz/PrintToolItem.hpp"
 
+#include "Slic3r/App/Config/ConfigFormSection.hpp"
 #include "Slic3r/App/Config/PrintToolRowItem.hpp"
 #include "Slic3r/App/Yoga/ListView.hpp"
 #include "Slic3r/App/Yoga/Rectangle.hpp"
 #include "Slic3r/App/IConfigNavigable.hpp"
+
+#include <optional>
 
 namespace Slic3r::App::Yoga {
 class Text;
@@ -49,10 +52,23 @@ public:
     void navigate_to_item(const Domain::ConfigItem* config_item) override;
     void clear_navigation() override;
 
+    void render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size) override;
+
 private:
     void on_data_update() override;
 
     void on_index_update() override;
+
+    /**
+     * @brief Build the custom controls registered for this group, if any.
+     *
+     * They render above the default rows, and the settings they claim are
+     * filtered out of those rows so nothing is shown twice.
+     */
+    void rebuild_form_elements();
+
+    /// Show or hide the group's body according to its heading switch.
+    void apply_section_visibility();
 
 private:
     Biz::PrintToolConfigBoxInteractor& m_cbi;
@@ -60,7 +76,10 @@ private:
 
     PrintToolRowListView* m_rows_list_view{nullptr};
     Biz::UnsharedPointer<Biz::ObservableListSortFilter<Biz::PrintToolItem>> m_rows_filter_list;
+    Yoga::Item* m_heading{nullptr};
     Yoga::Text* m_label{nullptr};
+    Yoga::Item* m_form_elements{nullptr};
+    std::optional<ConfigFormSection> m_section;
     Domain::ConfigItemDef::OptionGroup m_option_group{Domain::ConfigItemDef::OptionGroup::Unknown};
     Domain::ConfigItemDef::Category m_category{Domain::ConfigItemDef::Category::Unknown};
 };

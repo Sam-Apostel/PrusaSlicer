@@ -167,6 +167,15 @@ const Domain::ConfigValue* PrintToolConfigObservableList::find_print_value(
     return found_item ? &found_item->value() : nullptr;
 }
 
+const Domain::ConfigItem* PrintToolConfigObservableList::find_print_item(const std::string& name
+) const
+{
+    // Null-checked, unlike find_print_value above: a form control reads its
+    // settings from its own render, which can run before a preset has been
+    // selected and the box assigned.
+    return m_print_config_box == nullptr ? nullptr : m_print_config_box->items.find(name);
+}
+
 const Domain::ConfigValue*
 PrintToolConfigObservableList::find_tool_value(const std::string& name, size_t index) const
 {

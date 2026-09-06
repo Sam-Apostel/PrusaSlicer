@@ -24,6 +24,12 @@
 -- The group a control appears in comes from the settings it names, so it is
 -- never written down here and cannot drift. Every setting one control names
 -- must be in the same group.
+--
+-- One rule is decided by the printer rather than by this file: in the print
+-- form a row is also where per-tool overrides are added, and a control edits
+-- only the print level. So on a printer with several tools, a control naming a
+-- setting that can be overridden per tool is skipped and that setting keeps its
+-- full row. On a single-tool printer every control below applies.
 
 info = {
     id = "forms",
@@ -35,6 +41,8 @@ forms = {
     -- Infill density is a quantity tuned by feel between two ends, which is
     -- what a slider is for. A text field asks for a number when what the user
     -- has is a sense of "a bit more than last time".
+    -- Skipped on multi-tool printers: infill density can be overridden per
+    -- tool, and the row is where that is done.
     {
         kind = "slider",
         key = "fill_density",

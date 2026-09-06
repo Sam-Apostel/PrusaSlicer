@@ -2,6 +2,7 @@
 
 #include "Slic3r/Domain/SelectionId.hpp"
 
+#include "Slic3r/Biz/IConfigItemSource.hpp"
 #include "Slic3r/Biz/IListObserver.hpp"
 #include "Slic3r/Biz/ConfigBoxObservableList.hpp"
 #include <Slic3r/Biz/ConfigItemContext.hpp>
@@ -28,7 +29,9 @@ namespace Slic3r::Biz {
 
 class PrintToolConfigObservableList;
 
-class PrintToolConfigBoxInteractor : public IListObserver<Biz::ConfigItemContext>
+class PrintToolConfigBoxInteractor :
+    public IListObserver<Biz::ConfigItemContext>,
+    public IConfigItemSource
 {
 public:
     class SetAccessor
@@ -79,6 +82,17 @@ public:
     );
 
     const Domain::ConfigValue* find_print_value(const std::string& name) const;
+
+    /**
+     * @brief The print-level setting itself, not just its value.
+     *
+     * The print level is where a control writes, the same level the ordinary
+     * row writes at; per-tool overrides are a separate axis this does not
+     * touch.
+     *
+     * @return nullptr when no such setting is in this box.
+     */
+    const Domain::ConfigItem* find_item(const std::string& name) const override;
 
     const Domain::ConfigValue* find_tool_value(const std::string& name, size_t index) const;
 
