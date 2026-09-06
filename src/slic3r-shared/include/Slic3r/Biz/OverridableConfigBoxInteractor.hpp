@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Slic3r/Biz/IConfigItemSource.hpp"
+
 #include "Slic3r/Domain/ConfigDef.hpp"
 #include "Slic3r/Biz/IListObserver.hpp"
 
@@ -15,7 +17,7 @@ namespace Slic3r::Biz {
 
 class OverridableConfigBoxObservableList;
 
-class OverridableConfigBoxInteractor
+class OverridableConfigBoxInteractor : public IConfigItemSource
 {
 public:
     struct ConfigBoxes {
@@ -50,6 +52,12 @@ public:
     OverridableConfigBoxInteractor();
 
     const Domain::ConfigValue* find(const std::string& name) const;
+
+    /// The setting itself, for a control that writes a setting it was not built from.
+    const Domain::ConfigItem* find_item(const std::string& name) const override;
+
+    /// Whether the preset can override this setting, so its row carries a switch.
+    bool is_overridable(const std::string& name) const;
 
     std::weak_ptr<const OverridableConfigBoxObservableList> config_box_overridable_list() const;
 

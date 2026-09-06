@@ -1,5 +1,7 @@
 #include "Slic3r/Biz/OverridableConfigBoxObservableList.hpp"
 
+#include <algorithm>
+
 #include "Slic3r/Domain/Config.hpp"
 
 namespace Slic3r::Biz {
@@ -159,6 +161,25 @@ std::pair<const Domain::ConfigValue*, std::optional<bool>> OverridableConfigBoxO
 {
     const OverrideItem& override_item = find_override_item(m_items, key);
     return {&override_item.config_item->value(), override_item.overriden};
+}
+
+const Domain::ConfigItem*
+OverridableConfigBoxObservableList::find_item(const std::string& key) const
+{
+    // A linear scan, unlike find() above, because find_override_item() asserts
+    // rather than returning nothing and a control may legitimately name a
+    // setting this box does not carry -- one belonging to another printer
+    // technology, say.
+    const auto it = std::ranges::
+        find_if(m_items, [&key](const OverrideItem& item) { return item.name == key; });
+    return it == m_items.end() ? nullptr : it->config_item;
+}
+
+bool OverridableConfigBoxObservableList::is_overridable(const std::string& key) const
+{
+    const auto it = std::ranges::
+        find_if(m_items, [&key](const OverrideItem& item) { return item.name == key; });
+    return it != m_items.end() && it->is_override();
 }
 
 bool OverridableConfigBoxObservableList::is_dirty(const std::string& key) const
