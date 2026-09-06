@@ -1,12 +1,14 @@
 #pragma once
 
 #include <functional>
+#include <set>
 #include <string>
 #include <vector>
 
 namespace Slic3r::Domain {
 
 struct ConfigValue;
+struct ConfigItemDef;
 
 /**
  * @brief Reads sibling setting values while a dependency predicate is evaluated.
@@ -101,6 +103,15 @@ const ConfigItemRequirement* first_unmet(
     const std::vector<ConfigItemRequirement>& requirements,
     const ConfigItemLookup& lookup
 );
+
+/**
+ * @brief Enum values of a setting the current config rules out.
+ *
+ * Keyed by the enum's underlying integer, so a control can disable exactly the
+ * options that would be refused and leave the rest alone. Empty for the great
+ * majority of settings, which declare no per-value rules.
+ */
+std::set<int> unavailable_enum_values(const ConfigItemDef& def, const ConfigItemLookup& lookup);
 
 /// Combines predicates. Empty inputs are true, matching "no constraint".
 ConfigItemPredicate all_of(std::vector<ConfigItemPredicate> predicates);

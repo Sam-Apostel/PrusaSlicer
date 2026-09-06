@@ -1,5 +1,7 @@
 #include "Slic3r/App/Config/ConfigItemComboBox.hpp"
 
+#include "Slic3r/Domain/ConfigItemPredicate.hpp"
+
 #include "Slic3r/Biz/IConfigBoxSetter.hpp"
 #include "Slic3r/Biz/I18N/I18N.hpp"
 
@@ -216,6 +218,39 @@ void ConfigItemComboBox::initialize()
     }
 
     set_items(items);
+}
+
+void ConfigItemComboBox::refresh_disabled_values()
+{
+    if (m_state == nullptr || m_state->def().value_enable_if.empty())
+        return;
+    const Domain::ConfigItemLookup* lookup = m_cbi_container.item_lookup();
+    if (lookup == nullptr)
+        return;
+
+    std::set<int> unavailable = Domain::unavailable_enum_values(m_state->def(), *lookup);
+    if (unavailable == m_shown_unavailable)
+        return;
+    m_shown_unavailable = std::move(unavailable);
+
+    // The rules are keyed by the enum's own value; the combo knows only item
+    // positions, so map one to the other through the value definitions the
+    // items were built from.
+    std::set<int> disabled_indices;
+    if (m_state->holds_alternative<Domain::EnumWrapper>()) {
+        const Domain::EnumValueDefs& values = m_state->get<Domain::EnumWrapper>().def();
+        for (size_t i = 0; i < values.size(); ++i) {
+            if (m_shown_unavailable.contains(values[i].enum_value))
+                disabled_indices.insert(static_cast<int>(i));
+        }
+    }
+    set_disabled_items(disabled_indices);
+}
+
+void ConfigItemComboBox::render(const Yoga::Vec2f& pos, const Yoga::Vec2f& size)
+{
+    refresh_disabled_values();
+    ComboBox::render(pos, size);
 }
 
 } // namespace Slic3r::App

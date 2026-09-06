@@ -7,6 +7,8 @@
 
 #include <imgui_internal.h>
 
+#include <set>
+
 namespace Slic3r::App::Yoga {
 
 class Validator;
@@ -54,6 +56,16 @@ public:
     const std::vector<std::string>& items() const;
     void set_items(const std::vector<std::string>& items);
 
+    /**
+     * @brief Items the user may not pick, by index.
+     *
+     * They stay listed, greyed: an option that vanished would leave the user
+     * wondering what happened to it, and an option that is currently selected
+     * has to remain visible or the control would show nothing. Empty -- the
+     * usual case -- means every item is selectable.
+     */
+    void set_disabled_items(const std::set<int>& disabled_items);
+
     int current_index() const;
     void set_current_index(int current_index);
     std::string current_label() const;
@@ -67,6 +79,8 @@ public:
 
     ImGuiComboFlags flags() const;
     void set_flags(ImGuiComboFlags flags);
+
+    const std::set<int>& disabled_items() const;
 
     Validator* validator() const;
     void set_validator(std::unique_ptr<Validator> validator);
@@ -110,6 +124,7 @@ private:
 
 protected:
     std::vector<std::string> m_items;
+    std::set<int> m_disabled_items;
 
     Tooltip* m_tooltip = nullptr;
 
