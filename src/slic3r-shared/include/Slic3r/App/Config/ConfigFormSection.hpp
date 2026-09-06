@@ -86,7 +86,10 @@ public:
      * switch is there -- the switch is a setting too, and it is what turns the
      * rest back on.
      */
-    bool has_toggle() const { return m_toggle != nullptr; }
+    bool has_toggle() const
+    {
+        return m_toggle != nullptr;
+    }
 
     /**
      * @brief Show the body whatever the switch says.

@@ -80,7 +80,8 @@ static void apply_dependency_rules(ConfigDefinitions& defs)
     };
     const auto rule_each_visible =
         [&rule_visible](
-            std::initializer_list<std::string_view> keys, const ConfigItemPredicate& predicate
+            std::initializer_list<std::string_view> keys,
+            const ConfigItemPredicate& predicate
         )
     {
         for (const std::string_view key : keys)
@@ -124,8 +125,12 @@ static void apply_dependency_rules(ConfigDefinitions& defs)
     const ConfigItemPredicate have_arachne =
         when_enum_is("perimeter_generator", static_cast<int>(PerimeterGeneratorType::Arachne));
     const std::initializer_list<std::string_view> arachne_params{
-        "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
-        "wall_distribution_count", "min_feature_size", "min_bead_width"
+        "wall_transition_length",
+        "wall_transition_filter_deviation",
+        "wall_transition_angle",
+        "wall_distribution_count",
+        "min_feature_size",
+        "min_bead_width"
     };
     rule_each(arachne_params, have_arachne);
     // These are not a feature waiting to be switched on: they are the tuning

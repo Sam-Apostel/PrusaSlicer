@@ -61,7 +61,7 @@ bool apply_visibility_to_rows(
     const size_t count = std::min(rows.size(), view.object_count());
     for (size_t i = 0; i < count; ++i) {
         const Domain::ConfigItem* item = config_item_of(rows.at(i));
-        const bool visible = item == nullptr
+        const bool visible             = item == nullptr
             || (!forced_key.empty() && item->name() == forced_key)
             || config_item_visible(*item, setter);
         view.item_at(i)->set_visible(visible);

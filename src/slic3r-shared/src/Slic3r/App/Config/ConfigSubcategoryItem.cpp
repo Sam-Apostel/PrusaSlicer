@@ -147,8 +147,12 @@ void ConfigSubcategoryItem::apply_section_visibility()
 
 void ConfigSubcategoryItem::apply_row_visibility()
 {
-    const bool any_visible =
-        apply_visibility_to_rows(*m_rows_filter_list, *m_rows_list_view, m_cbi_container, m_navigating_to);
+    const bool any_visible = apply_visibility_to_rows(
+        *m_rows_filter_list,
+        *m_rows_list_view,
+        m_cbi_container,
+        m_navigating_to
+    );
 
     // A group with no visible row, no control of its own and no switch in its
     // heading is not a group. Its heading goes, and its padding with it -- but
