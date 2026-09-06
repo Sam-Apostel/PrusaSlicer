@@ -431,6 +431,8 @@ set(SLIC3R_SHARED_FILES
         src/Slic3r/App/Config/FormSpecInstaller.cpp
         include/Slic3r/App/Config/ConfigRowDependency.hpp
         src/Slic3r/App/Config/ConfigRowDependency.cpp
+        include/Slic3r/App/Config/ConfigRowVisibility.hpp
+        src/Slic3r/App/Config/ConfigRowVisibility.cpp
         include/Slic3r/App/Config/ConfigRowItem.hpp
         src/Slic3r/App/Config/ConfigRowItem.cpp
         include/Slic3r/App/Config/ConfigItemContextRowItem.hpp

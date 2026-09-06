@@ -68,6 +68,25 @@ static void apply_dependency_rules(ConfigDefinitions& defs)
             rule(key, predicate);
     };
 
+    // Visibility rather than availability: for a setting that has no meaning at
+    // all in the configuration chosen, rather than one that is merely inactive.
+    // Prefer the plain rule -- hiding a setting also hides that it exists.
+    const auto rule_visible = [&defs](const std::string_view key, ConfigItemPredicate predicate)
+    {
+        ConfigItemDef* target = defs.find_mutable(key);
+        ASSERT(target != nullptr);
+        if (target != nullptr)
+            target->visible_if = std::move(predicate);
+    };
+    const auto rule_each_visible =
+        [&rule_visible](
+            std::initializer_list<std::string_view> keys, const ConfigItemPredicate& predicate
+        )
+    {
+        for (const std::string_view key : keys)
+            rule_visible(key, predicate);
+    };
+
     // --- Perimeters ---------------------------------------------------------
     const ConfigItemPredicate have_perimeters = when_positive("perimeters");
     rule_each(
@@ -104,11 +123,20 @@ static void apply_dependency_rules(ConfigDefinitions& defs)
     // --- Perimeter generator ------------------------------------------------
     const ConfigItemPredicate have_arachne =
         when_enum_is("perimeter_generator", static_cast<int>(PerimeterGeneratorType::Arachne));
-    rule_each(
-        {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
-         "wall_distribution_count", "min_feature_size", "min_bead_width"},
-        have_arachne
-    );
+    const std::initializer_list<std::string_view> arachne_params{
+        "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
+        "wall_distribution_count", "min_feature_size", "min_bead_width"
+    };
+    rule_each(arachne_params, have_arachne);
+    // These are not a feature waiting to be switched on: they are the tuning
+    // parameters of a perimeter generator, and under the other generator there
+    // is nothing they could mean. Hidden rather than greyed, which empties the
+    // group and takes its heading with it -- the classic generator has no
+    // Arachne section, rather than a permanently disabled one.
+    //
+    // The enable_if above stays. It costs nothing and it is what still greys
+    // them in a view that cannot evaluate visibility.
+    rule_each_visible(arachne_params, have_arachne);
     // Thin walls are a classic-generator concept; Arachne handles them inherently.
     rule("thin_walls", all_of({have_perimeters, negate(have_arachne)}));
 
