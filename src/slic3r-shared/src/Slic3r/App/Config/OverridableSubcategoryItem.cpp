@@ -45,7 +45,9 @@ OverridableSubcategoryItem::OverridableSubcategoryItem(
     m_heading->set_gap(10);
 
     m_label = m_heading->emplace_back<Text>(
-        Biz::_u8(Domain::ConfigItemDef::translate_option_group(m_state->config_item->def().option_group)),
+        Biz::_u8(
+            Domain::ConfigItemDef::translate_option_group(m_state->config_item->def().option_group)
+        ),
         Render::ImguiFontType::Bold
     );
     m_label->set_flex_grow(1);
@@ -145,7 +147,10 @@ void OverridableSubcategoryItem::apply_section_visibility()
 void OverridableSubcategoryItem::apply_row_visibility()
 {
     const bool any_visible = apply_visibility_to_rows(
-        *m_rows_filter_list, *m_rows_list_view, m_cbi_container, m_navigating_to
+        *m_rows_filter_list,
+        *m_rows_list_view,
+        m_cbi_container,
+        m_navigating_to
     );
 
     const bool anything_to_show =

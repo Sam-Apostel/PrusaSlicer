@@ -163,24 +163,22 @@ std::pair<const Domain::ConfigValue*, std::optional<bool>> OverridableConfigBoxO
     return {&override_item.config_item->value(), override_item.overriden};
 }
 
-const Domain::ConfigItem* OverridableConfigBoxObservableList::find_item(const std::string& key
-) const
+const Domain::ConfigItem*
+OverridableConfigBoxObservableList::find_item(const std::string& key) const
 {
     // A linear scan, unlike find() above, because find_override_item() asserts
     // rather than returning nothing and a control may legitimately name a
     // setting this box does not carry -- one belonging to another printer
     // technology, say.
-    const auto it = std::ranges::find_if(
-        m_items, [&key](const OverrideItem& item) { return item.name == key; }
-    );
+    const auto it = std::ranges::
+        find_if(m_items, [&key](const OverrideItem& item) { return item.name == key; });
     return it == m_items.end() ? nullptr : it->config_item;
 }
 
 bool OverridableConfigBoxObservableList::is_overridable(const std::string& key) const
 {
-    const auto it = std::ranges::find_if(
-        m_items, [&key](const OverrideItem& item) { return item.name == key; }
-    );
+    const auto it = std::ranges::
+        find_if(m_items, [&key](const OverrideItem& item) { return item.name == key; });
     return it != m_items.end() && it->is_override();
 }
 
