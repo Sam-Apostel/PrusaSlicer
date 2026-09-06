@@ -418,6 +418,8 @@ set(SLIC3R_SHARED_FILES
         src/Slic3r/App/Config/ConfigFormElementRegistry.cpp
         include/Slic3r/App/Config/ConfigFormSection.hpp
         src/Slic3r/App/Config/ConfigFormSection.cpp
+        include/Slic3r/App/Config/EnumCard.hpp
+        src/Slic3r/App/Config/EnumCard.cpp
         include/Slic3r/App/Config/EnumCardsElement.hpp
         src/Slic3r/App/Config/EnumCardsElement.cpp
         include/Slic3r/App/Config/PercentSliderElement.hpp

@@ -1,5 +1,6 @@
 #include "Slic3r/App/Config/EnumCardsElement.hpp"
 
+#include "Slic3r/App/Config/EnumCard.hpp"
 #include "Slic3r/App/Yoga/RadioButton.hpp"
 #include "Slic3r/App/Yoga/Text.hpp"
 
@@ -16,9 +17,11 @@ namespace Slic3r::App {
 EnumCardsElement::EnumCardsElement(
     const ConfigFormContext& context,
     std::string key,
-    const size_t columns
+    const size_t columns,
+    std::map<std::string, std::string> images
 ) :
-    ConfigFormElement(context), m_key(std::move(key))
+    ConfigFormElement(context),
+    m_key(std::move(key))
 {
     set_object_name("EnumCardsElement");
     set_orientation(Orientation::Vertical);
@@ -47,7 +50,18 @@ EnumCardsElement::EnumCardsElement(
             row->set_gap(10);
         }
         const Domain::EnumValueDef& value = values[i];
-        auto* card = row->emplace_back<RadioButton>(translate(value.str_ui), Biz::_u8(def.tooltip));
+        const auto image                  = images.find(value.str_serialized);
+
+        // A picture where one was declared, a plain labelled button where not,
+        // so an enum can be illustrated a few options at a time rather than all
+        // or nothing.
+        AbstractButton* card = nullptr;
+        if (image != images.end()) {
+            card = row->emplace_back<
+                EnumCard>(translate(value.str_ui), Biz::_u8(def.tooltip), image->second);
+        } else {
+            card = row->emplace_back<RadioButton>(translate(value.str_ui), Biz::_u8(def.tooltip));
+        }
         card->set_flex_grow(1);
         m_cards.emplace_back(value.enum_value, card);
         m_group.insert_button(card);

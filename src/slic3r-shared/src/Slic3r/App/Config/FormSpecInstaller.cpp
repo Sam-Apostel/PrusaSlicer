@@ -200,8 +200,11 @@ FormSpecInstallReport install_plugin_form_specs(
         };
         switch (spec.kind) {
         case FormElementSpec::Kind::Cards:
-            entry.factory = [key = spec.key, columns = spec.columns](const ConfigFormContext& ctx)
-            { return std::make_unique<EnumCardsElement>(ctx, key, columns); };
+            entry.factory =
+                [key     = spec.key,
+                 columns = spec.columns,
+                 images  = spec.images](const ConfigFormContext& ctx)
+            { return std::make_unique<EnumCardsElement>(ctx, key, columns, images); };
             break;
         case FormElementSpec::Kind::Slider:
             entry.factory = [key = spec.key, step = spec.step](const ConfigFormContext& ctx)

@@ -3,13 +3,14 @@
 #include "Slic3r/App/Config/ConfigFormElement.hpp"
 #include "Slic3r/App/Yoga/ButtonGroup.hpp"
 
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 namespace Slic3r::App::Yoga {
-class RadioButton;
+class AbstractButton;
 class Text;
 } // namespace Slic3r::App::Yoga
 
@@ -35,7 +36,17 @@ public:
      * @param key The enum setting to render.
      * @param columns How many cards per row. One reads as a list, more as a grid.
      */
-    EnumCardsElement(const ConfigFormContext& context, std::string key, size_t columns = 1);
+    /**
+     * @param images Picture per value, keyed by serialized name. Values absent
+     *               from it render as plain labelled buttons, so a partly
+     *               illustrated enum is fine.
+     */
+    EnumCardsElement(
+        const ConfigFormContext& context,
+        std::string key,
+        size_t columns                            = 1,
+        std::map<std::string, std::string> images = {}
+    );
 
     void refresh_from_config() override;
 
@@ -50,7 +61,7 @@ private:
     Yoga::Text* m_label{nullptr};
     Yoga::ButtonGroup m_group;
     /// Cards in definition order, paired with the enum value each selects.
-    std::vector<std::pair<int, Yoga::RadioButton*>> m_cards;
+    std::vector<std::pair<int, Yoga::AbstractButton*>> m_cards;
 
     std::optional<int> m_shown_value;
     std::set<int> m_shown_unavailable;

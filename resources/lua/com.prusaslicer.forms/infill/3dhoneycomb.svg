@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M23.3 19.0L23.3 29.0L14.7 34.0L6.0 29.0L6.0 19.0L14.7 14.0Z"/>
+  <path d="M6.0 19.0L6.0 32.0"/>
+  <path d="M14.7 14.0L14.7 27.0"/>
+  <path d="M6.0 42.0L14.7 47.0"/>
+  <path d="M14.7 47.0L23.3 42.0"/>
+  <path d="M40.7 19.0L40.7 29.0L32.0 34.0L23.3 29.0L23.3 19.0L32.0 14.0Z"/>
+  <path d="M23.3 19.0L23.3 32.0"/>
+  <path d="M32.0 14.0L32.0 27.0"/>
+  <path d="M23.3 42.0L32.0 47.0"/>
+  <path d="M32.0 47.0L40.7 42.0"/>
+  <path d="M58.0 19.0L58.0 29.0L49.3 34.0L40.7 29.0L40.7 19.0L49.3 14.0Z"/>
+  <path d="M40.7 19.0L40.7 32.0"/>
+  <path d="M49.3 14.0L49.3 27.0"/>
+  <path d="M40.7 42.0L49.3 47.0"/>
+  <path d="M49.3 47.0L58.0 42.0"/>
+</svg>
